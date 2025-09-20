@@ -61,7 +61,7 @@ export default function MyRidesScreen() {
   };
 
   const openChat = (rideId: string) => {
-    navigation.navigate('Chat' as never, { rideId } as never);
+    router.push(`/chat/${rideId}`);
   };
 
   return (
