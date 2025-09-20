@@ -155,7 +155,12 @@ class RideSharingAPITester:
             return False
             
         # Ensure user is a rider first
-        self.make_request("PUT", "/users/toggle-role")
+        toggle_success, toggle_response, _ = self.make_request("PUT", "/users/toggle-role")
+        if toggle_success and toggle_response.get("is_rider"):
+            # Refresh user info after role toggle
+            user_success, user_data, _ = self.make_request("GET", "/auth/me")
+            if user_success:
+                self.current_user = user_data
         
         ride_data = {
             "origin": {
