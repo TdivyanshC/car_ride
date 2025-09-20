@@ -6,7 +6,7 @@ import { StatusBar } from 'expo-status-bar';
 import { Stack } from 'expo-router';
 
 // Import providers and hooks
-import { AuthProvider } from './context/AuthContext';
+import { AuthProvider } from '../src/context/AuthContext';
 
 const queryClient = new QueryClient();
 
