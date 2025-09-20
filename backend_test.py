@@ -110,8 +110,16 @@ class RideSharingAPITester:
             
     def test_invalid_login(self):
         """Test login with invalid credentials"""
+        # Use the same email from registration but wrong password
+        if hasattr(self, 'test_email'):
+            email = self.test_email
+        else:
+            import random
+            random_id = random.randint(1000, 9999)
+            email = f"testuser{random_id}@example.com"
+            
         invalid_login = {
-            "email": "sarah.johnson@example.com",
+            "email": email,
             "password": "WrongPassword123!"
         }
         
