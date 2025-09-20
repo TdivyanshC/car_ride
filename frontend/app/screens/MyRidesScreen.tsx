@@ -12,7 +12,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useQuery } from '@tanstack/react-query';
 import { ridesApi } from '../api/rides';
 import { useAuth } from '../context/AuthContext';
-import { useNavigation } from '@react-navigation/native';
+import { router } from 'expo-router';
 
 export default function MyRidesScreen() {
   const { user } = useAuth();
