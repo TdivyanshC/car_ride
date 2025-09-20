@@ -13,8 +13,6 @@ import { router } from 'expo-router';
 
 export default function HomeScreen() {
   const { user } = useAuth();
-  const navigation = useNavigation();
-
   const quickActions = [
     {
       id: 'search',
@@ -22,7 +20,7 @@ export default function HomeScreen() {
       subtitle: 'Search for available rides',
       icon: 'search',
       color: '#007AFF',
-      onPress: () => navigation.navigate('Search' as never),
+      onPress: () => router.push('/(tabs)/search'),
     },
     {
       id: 'publish',
@@ -30,7 +28,7 @@ export default function HomeScreen() {
       subtitle: 'Share your journey',
       icon: 'add-circle',
       color: '#34C759',
-      onPress: () => navigation.navigate('Publish' as never),
+      onPress: () => router.push('/(tabs)/publish'),
       hidden: !user?.is_rider,
     },
     {
@@ -39,7 +37,7 @@ export default function HomeScreen() {
       subtitle: 'View your bookings',
       icon: 'car',
       color: '#FF9500',
-      onPress: () => navigation.navigate('MyRides' as never),
+      onPress: () => router.push('/(tabs)/my-rides'),
     },
   ];
 
