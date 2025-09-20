@@ -253,8 +253,13 @@ class RideSharingAPITester:
             self.log_test("Create Booking", False, "No auth token or ride ID available")
             return False
             
-        # Switch to passenger mode first
-        self.make_request("PUT", "/users/toggle-role")
+        # Switch to passenger mode first (toggle from rider to passenger)
+        toggle_success, toggle_response, _ = self.make_request("PUT", "/users/toggle-role")
+        if toggle_success:
+            # Refresh user info after role toggle
+            user_success, user_data, _ = self.make_request("GET", "/auth/me")
+            if user_success:
+                self.current_user = user_data
         
         booking_data = {
             "ride_id": self.created_ride_id,
