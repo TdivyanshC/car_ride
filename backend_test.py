@@ -61,11 +61,13 @@ class RideSharingAPITester:
             
     def test_user_registration(self):
         """Test user registration endpoint"""
+        import random
+        random_id = random.randint(1000, 9999)
         test_user = {
-            "email": "sarah.johnson@example.com",
+            "email": f"testuser{random_id}@example.com",
             "password": "SecurePass123!",
-            "name": "Sarah Johnson",
-            "phone": "+1-555-0123"
+            "name": f"Test User {random_id}",
+            "phone": f"+1-555-{random_id:04d}"
         }
         
         success, response_data, status_code = self.make_request("POST", "/auth/register", test_user)
