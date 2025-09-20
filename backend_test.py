@@ -83,8 +83,16 @@ class RideSharingAPITester:
             
     def test_user_login(self):
         """Test user login endpoint"""
+        # Use the same email from registration
+        if hasattr(self, 'test_email'):
+            email = self.test_email
+        else:
+            import random
+            random_id = random.randint(1000, 9999)
+            email = f"testuser{random_id}@example.com"
+            
         login_data = {
-            "email": "sarah.johnson@example.com",
+            "email": email,
             "password": "SecurePass123!"
         }
         
