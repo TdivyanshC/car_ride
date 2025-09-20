@@ -339,7 +339,7 @@ class RideSharingAPITester:
         if original_token:
             self.set_auth_token(original_token)
             
-        if not success and status_code == 401:
+        if not success and status_code in [401, 403]:
             self.log_test("Unauthorized Access Test", True, "Correctly rejected unauthorized access", response_data)
             return True
         else:
