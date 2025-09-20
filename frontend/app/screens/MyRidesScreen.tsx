@@ -16,7 +16,6 @@ import { router } from 'expo-router';
 
 export default function MyRidesScreen() {
   const { user } = useAuth();
-  const navigation = useNavigation();
   const [activeTab, setActiveTab] = useState<'booked' | 'published'>('booked');
 
   const {
