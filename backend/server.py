@@ -376,5 +376,6 @@ logger = logging.getLogger(__name__)
 async def shutdown_db_client():
     client.close()
 
-# Use socket_app instead of app for the ASGI server
-app = socket_app
+# Use socket_app as the main application
+# But we need to preserve the original app for health checks
+main_app = socket_app
