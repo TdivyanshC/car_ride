@@ -284,6 +284,7 @@ async def create_booking(booking_data: BookingCreate, current_user: User = Depen
     booking_dict.update({
         "passenger_id": current_user.id,
         "passenger_name": current_user.name,
+        "seats_booked": booking_dict.pop("seats_requested"),  # Map seats_requested to seats_booked
         "total_price": total_price
     })
     booking_obj = Booking(**booking_dict)
