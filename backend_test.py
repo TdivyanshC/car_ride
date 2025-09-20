@@ -75,6 +75,7 @@ class RideSharingAPITester:
         if success and "access_token" in response_data:
             self.set_auth_token(response_data["access_token"])
             self.current_user = response_data["user"]
+            self.test_email = test_user["email"]  # Store for login test
             self.log_test("User Registration", True, f"User registered successfully with ID: {self.current_user['id']}", response_data)
             return True
         else:
