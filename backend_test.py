@@ -139,6 +139,9 @@ class RideSharingAPITester:
         
         if success and "is_rider" in response_data:
             is_rider = response_data["is_rider"]
+            # Update current user state
+            if self.current_user:
+                self.current_user["is_rider"] = is_rider
             self.log_test("Role Toggle", True, f"Role toggled successfully. Is rider: {is_rider}", response_data)
             return True
         else:
