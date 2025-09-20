@@ -55,7 +55,7 @@ export default function HomeScreen() {
           </View>
           <TouchableOpacity
             style={styles.profileButton}
-            onPress={() => navigation.navigate('Profile' as never)}
+            onPress={() => router.push('/(tabs)/profile')}
           >
             <Ionicons name="person-circle" size={40} color="#007AFF" />
           </TouchableOpacity>
