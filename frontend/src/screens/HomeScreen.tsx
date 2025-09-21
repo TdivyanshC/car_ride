@@ -17,10 +17,13 @@ export default function HomeScreen() {
     {
       id: 'search',
       title: 'Find a Ride',
-      subtitle: 'Search for available rides',
+      subtitle: 'Browse available rides',
       icon: 'search',
       color: '#007AFF',
-      onPress: () => router.push('/(tabs)/search'),
+      onPress: () => {
+        // TODO: Implement search modal or navigate to search screen
+        console.log('🏠 Search functionality to be implemented');
+      },
     },
     {
       id: 'publish',
@@ -29,7 +32,8 @@ export default function HomeScreen() {
       icon: 'add-circle',
       color: '#34C759',
       onPress: () => router.push('/(tabs)/publish'),
-      hidden: !user?.is_rider,
+      requiresAuth: true,
+      requiresRider: true,
     },
     {
       id: 'rides',
@@ -38,17 +42,24 @@ export default function HomeScreen() {
       icon: 'car',
       color: '#FF9500',
       onPress: () => router.push('/(tabs)/my-rides'),
+      requiresAuth: true,
     },
   ];
 
-  const visibleActions = quickActions.filter(action => !action.hidden);
+  const visibleActions = quickActions.filter(action => {
+    if (!user && action.requiresAuth) return false;
+    if (action.requiresRider && !user?.is_rider) return false;
+    return true;
+  });
 
   return (
     <SafeAreaView style={styles.container}>
       <ScrollView style={styles.scrollView}>
         <View style={styles.header}>
           <View>
-            <Text style={styles.greeting}>Hello, {user?.name}!</Text>
+            <Text style={styles.greeting}>
+              {user ? `Hello, ${user.name}!` : 'Welcome to RideShare!'}
+            </Text>
             <Text style={styles.subtitle}>
               {user?.is_rider ? 'Ready to share a ride?' : 'Where are you going?'}
             </Text>

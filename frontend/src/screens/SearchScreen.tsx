@@ -21,9 +21,11 @@ export default function SearchScreen() {
   });
   const [showFilters, setShowFilters] = useState(false);
 
-  const { data: rides = [], isLoading, refetch } = useQuery({
+  const { data: rides = [], isLoading, refetch, error } = useQuery({
     queryKey: ['rides', searchParams],
     queryFn: () => ridesApi.searchRides(),
+    retry: 3,
+    retryDelay: 1000,
   });
 
   const handleBookRide = async (rideId: string, availableSeats: number) => {
@@ -102,15 +104,40 @@ export default function SearchScreen() {
           />
         </View>
 
-        <TouchableOpacity style={styles.searchButton} onPress={() => refetch()}>
+        <TouchableOpacity style={styles.searchButton} onPress={() => {
+          console.log('🔍 Searching for rides...');
+          refetch();
+        }}>
           <Text style={styles.searchButtonText}>Search Rides</Text>
         </TouchableOpacity>
+
+        <TouchableOpacity style={[styles.searchButton, { backgroundColor: '#34C759' }]} onPress={() => {
+          console.log('🔄 Manual refresh...');
+          refetch();
+        }}>
+          <Text style={styles.searchButtonText}>Refresh</Text>
+        </TouchableOpacity>
+
+        {error && (
+          <View style={styles.errorContainer}>
+            <Text style={styles.errorText}>Error loading rides: {error.message}</Text>
+            <TouchableOpacity style={styles.retryButton} onPress={() => refetch()}>
+              <Text style={styles.retryButtonText}>Retry</Text>
+            </TouchableOpacity>
+          </View>
+        )}
       </View>
 
       <ScrollView style={styles.resultsContainer}>
         <Text style={styles.resultsTitle}>
           {rides.length} rides available
         </Text>
+
+        {__DEV__ && (
+          <Text style={{ fontSize: 12, color: '#666', textAlign: 'center', marginBottom: 8 }}>
+            Debug: {isLoading ? 'Loading...' : `Loaded ${rides.length} rides`}
+          </Text>
+        )}
 
         {rides.map((ride) => (
           <View key={ride.id} style={styles.rideCard}>
@@ -371,5 +398,31 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#999',
     marginTop: 4,
+  },
+  errorContainer: {
+    backgroundColor: '#ffebee',
+    padding: 16,
+    marginHorizontal: 20,
+    marginBottom: 16,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#f44336',
+  },
+  errorText: {
+    fontSize: 14,
+    color: '#c62828',
+    marginBottom: 8,
+  },
+  retryButton: {
+    backgroundColor: '#f44336',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 6,
+    alignSelf: 'flex-start',
+  },
+  retryButtonText: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: '500',
   },
 });

@@ -4,7 +4,6 @@ import {
   Text,
   StyleSheet,
   TouchableOpacity,
-  Alert,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
@@ -13,6 +12,7 @@ import { TextInput } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAuth } from '../context/AuthContext';
 import { Ionicons } from '@expo/vector-icons';
+import Toast from 'react-native-toast-message';
 
 export default function AuthScreen() {
   const [isLogin, setIsLogin] = useState(true);
@@ -25,26 +25,86 @@ export default function AuthScreen() {
   const [loading, setLoading] = useState(false);
   const { login, register } = useAuth();
 
-  const handleSubmit = async () => {
-    if (!formData.email || !formData.password) {
-      Alert.alert('Error', 'Please fill in all required fields');
-      return;
+  const validateForm = () => {
+    if (!formData.email.trim()) {
+      Toast.show({
+        type: 'error',
+        text1: 'Email Required',
+        text2: 'Please enter your email address',
+      });
+      return false;
     }
 
-    if (!isLogin && (!formData.name || !formData.phone)) {
-      Alert.alert('Error', 'Please fill in all required fields');
-      return;
+    // Basic email validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(formData.email.trim())) {
+      Toast.show({
+        type: 'error',
+        text1: 'Invalid Email',
+        text2: 'Please enter a valid email address',
+      });
+      return false;
     }
+
+    if (!formData.password.trim()) {
+      Toast.show({
+        type: 'error',
+        text1: 'Password Required',
+        text2: 'Please enter your password',
+      });
+      return false;
+    }
+
+    // Password strength validation for signup
+    if (!isLogin && formData.password.length < 6) {
+      Toast.show({
+        type: 'error',
+        text1: 'Weak Password',
+        text2: 'Password must be at least 6 characters',
+      });
+      return false;
+    }
+
+    if (!isLogin) {
+      if (!formData.name.trim()) {
+        Toast.show({
+          type: 'error',
+          text1: 'Name Required',
+          text2: 'Please enter your full name',
+        });
+        return false;
+      }
+    }
+
+    return true;
+  };
+
+  const handleSubmit = async () => {
+    if (!validateForm()) return;
 
     setLoading(true);
     try {
       if (isLogin) {
         await login(formData.email, formData.password);
+        Toast.show({
+          type: 'success',
+          text1: 'Welcome back!',
+          text2: 'Login successful',
+        });
       } else {
         await register(formData);
+        Toast.show({
+          type: 'success',
+          text1: 'Account created!',
+          text2: 'Registration successful',
+        });
       }
     } catch (error: any) {
-      Alert.alert('Error', error.message);
+      Toast.show({
+        type: 'error',
+        text1: 'Authentication Failed',
+        text2: error.message || 'Please try again',
+      });
     } finally {
       setLoading(false);
     }

@@ -69,11 +69,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     phone: string;
   }) => {
     try {
+      console.log('🔵 Starting registration for:', userData.email);
       const response = await authApi.register(userData);
+      console.log('✅ Registration successful:', response);
       await AsyncStorage.setItem('authToken', response.access_token);
       setUser(response.user);
     } catch (error: any) {
-      throw new Error(error.response?.data?.detail || 'Registration failed');
+      console.error('❌ Registration error:', error);
+      console.error('Error response:', error.response);
+      console.error('Error message:', error.message);
+      const errorMessage = error.response?.data?.detail || error.message || 'Registration failed';
+      throw new Error(errorMessage);
     }
   };
 

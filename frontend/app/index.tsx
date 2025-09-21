@@ -6,23 +6,14 @@ import { StatusBar } from 'expo-status-bar';
 import { Redirect } from 'expo-router';
 
 // Import providers and hooks
-import { AuthProvider, useAuth } from './context/AuthContext';
-import AuthScreen from './screens/AuthScreen';
+import { AuthProvider, useAuth } from '../src/context/AuthContext';
+import AuthScreen from '../src/screens/AuthScreen';
 
 const queryClient = new QueryClient();
 
 function RootLayout() {
-  const { user, loading } = useAuth();
-
-  if (loading) {
-    return null; // Or loading screen
-  }
-
-  if (user) {
-    return <Redirect href="/(tabs)" />;
-  }
-
-  return <AuthScreen />;
+  // Bypass authentication and go directly to main app
+  return <Redirect href="/(tabs)" />;
 }
 
 export default function App() {

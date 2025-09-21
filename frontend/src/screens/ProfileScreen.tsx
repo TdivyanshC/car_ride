@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
@@ -6,15 +6,58 @@ import {
   TouchableOpacity,
   ScrollView,
   Alert,
+  KeyboardAvoidingView,
+  Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { TextInput } from 'react-native';
 import { useAuth } from '../context/AuthContext';
 import { Ionicons } from '@expo/vector-icons';
 
 export default function ProfileScreen() {
-  const { user, logout, toggleRole } = useAuth();
+  const { user, login, register, logout, toggleRole } = useAuth();
+  const [isLogin, setIsLogin] = useState(true);
+  const [formData, setFormData] = useState({
+    email: '',
+    password: '',
+    name: '',
+    phone: '',
+  });
+  const [loading, setLoading] = useState(false);
+
+  const handleSubmit = async () => {
+    if (!formData.email || !formData.password) {
+      Alert.alert('Error', 'Please fill in all required fields');
+      return;
+    }
+
+    if (!isLogin && (!formData.name || !formData.phone)) {
+      Alert.alert('Error', 'Please fill in all required fields');
+      return;
+    }
+
+    setLoading(true);
+    try {
+      if (isLogin) {
+        await login(formData.email, formData.password);
+        Alert.alert('Success', 'Logged in successfully!');
+      } else {
+        await register(formData);
+        Alert.alert('Success', 'Account created successfully!');
+      }
+    } catch (error: any) {
+      Alert.alert('Error', error.message || 'Authentication failed');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const updateField = (field: string, value: string) => {
+    setFormData((prev) => ({ ...prev, [field]: value }));
+  };
 
   const handleToggleRole = async () => {
+    if (!user) return;
     Alert.alert(
       'Switch Role',
       `Switch to ${user?.is_rider ? 'Passenger' : 'Rider'} mode?`,
@@ -41,6 +84,101 @@ export default function ProfileScreen() {
     ]);
   };
 
+  if (!user) {
+    // Show login/signup form
+    return (
+      <SafeAreaView style={styles.container}>
+        <KeyboardAvoidingView
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          style={styles.container}
+        >
+          <ScrollView contentContainerStyle={styles.scrollContainer}>
+            <View style={styles.header}>
+              <Ionicons name="person-circle" size={60} color="#007AFF" />
+              <Text style={styles.title}>Welcome to RideShare</Text>
+              <Text style={styles.subtitle}>
+                {isLogin ? 'Sign in to your account' : 'Create your account'}
+              </Text>
+            </View>
+
+            <View style={styles.form}>
+              {!isLogin && (
+                <View style={styles.inputContainer}>
+                  <Ionicons name="person-outline" size={20} color="#666" />
+                  <TextInput
+                    style={styles.input}
+                    placeholder="Full Name"
+                    value={formData.name}
+                    onChangeText={(value) => updateField('name', value)}
+                    autoCapitalize="words"
+                  />
+                </View>
+              )}
+
+              <View style={styles.inputContainer}>
+                <Ionicons name="mail-outline" size={20} color="#666" />
+                <TextInput
+                  style={styles.input}
+                  placeholder="Email"
+                  value={formData.email}
+                  onChangeText={(value) => updateField('email', value)}
+                  keyboardType="email-address"
+                  autoCapitalize="none"
+                />
+              </View>
+
+              {!isLogin && (
+                <View style={styles.inputContainer}>
+                  <Ionicons name="call-outline" size={20} color="#666" />
+                  <TextInput
+                    style={styles.input}
+                    placeholder="Phone Number"
+                    value={formData.phone}
+                    onChangeText={(value) => updateField('phone', value)}
+                    keyboardType="phone-pad"
+                  />
+                </View>
+              )}
+
+              <View style={styles.inputContainer}>
+                <Ionicons name="lock-closed-outline" size={20} color="#666" />
+                <TextInput
+                  style={styles.input}
+                  placeholder="Password"
+                  value={formData.password}
+                  onChangeText={(value) => updateField('password', value)}
+                  secureTextEntry
+                />
+              </View>
+
+              <TouchableOpacity
+                style={[styles.button, loading && styles.buttonDisabled]}
+                onPress={handleSubmit}
+                disabled={loading}
+              >
+                <Text style={styles.buttonText}>
+                  {loading ? 'Loading...' : isLogin ? 'Sign In' : 'Sign Up'}
+                </Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={styles.switchButton}
+                onPress={() => setIsLogin(!isLogin)}
+              >
+                <Text style={styles.switchText}>
+                  {isLogin
+                    ? "Don't have an account? Sign Up"
+                    : 'Already have an account? Sign In'}
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </ScrollView>
+        </KeyboardAvoidingView>
+      </SafeAreaView>
+    );
+  }
+
+  // Show authenticated user profile
   const profileOptions = [
     {
       id: 'role',
@@ -156,6 +294,11 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#f8f9fa',
   },
+  scrollContainer: {
+    flexGrow: 1,
+    justifyContent: 'center',
+    padding: 20,
+  },
   scrollView: {
     flex: 1,
   },
@@ -167,6 +310,17 @@ const styles = StyleSheet.create({
   },
   profileImageContainer: {
     marginBottom: 16,
+  },
+  title: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: '#1a1a1a',
+    marginTop: 16,
+  },
+  subtitle: {
+    fontSize: 16,
+    color: '#666',
+    marginTop: 8,
   },
   name: {
     fontSize: 24,
@@ -195,6 +349,49 @@ const styles = StyleSheet.create({
     color: '#007AFF',
     fontWeight: '500',
     marginLeft: 4,
+  },
+  form: {
+    width: '100%',
+  },
+  inputContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 16,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: '#e1e5e9',
+  },
+  input: {
+    flex: 1,
+    marginLeft: 12,
+    fontSize: 16,
+    color: '#1a1a1a',
+  },
+  button: {
+    backgroundColor: '#007AFF',
+    borderRadius: 12,
+    paddingVertical: 16,
+    alignItems: 'center',
+    marginTop: 8,
+  },
+  buttonDisabled: {
+    backgroundColor: '#ccc',
+  },
+  buttonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  switchButton: {
+    alignItems: 'center',
+    marginTop: 24,
+  },
+  switchText: {
+    color: '#007AFF',
+    fontSize: 14,
   },
   statsContainer: {
     flexDirection: 'row',

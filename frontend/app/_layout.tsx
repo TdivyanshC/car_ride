@@ -19,7 +19,6 @@ export default function RootLayout() {
           <Stack screenOptions={{ headerShown: false }}>
             <Stack.Screen name="index" />
             <Stack.Screen name="(tabs)" />
-            <Stack.Screen name="chat/[id]" options={{ headerShown: true, title: 'Ride Chat' }} />
           </Stack>
           <Toast />
         </AuthProvider>  

@@ -66,8 +66,15 @@ export const ridesApi = {
     destination_lng?: number;
     date?: string;
   }): Promise<Ride[]> => {
-    const response = await api.get('/rides', { params });
-    return response.data;
+    console.log('🚗 API: Searching for rides...', params);
+    try {
+      const response = await api.get('/rides', { params });
+      console.log('✅ API: Found rides:', response.data.length);
+      return response.data;
+    } catch (error: any) {
+      console.error('❌ API: Search rides failed:', error.message);
+      throw error;
+    }
   },
 
   getMyRides: async (): Promise<Ride[]> => {
