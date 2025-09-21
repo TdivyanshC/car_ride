@@ -1,4 +1,29 @@
-import api from './auth';
+import axios from 'axios';
+
+const API_BASE_URL = process.env.EXPO_PUBLIC_BACKEND_URL || 'http://localhost:8001';
+
+const api = axios.create({
+  baseURL: `${API_BASE_URL}/api`,
+  headers: {
+    'Content-Type': 'application/json',
+  },
+});
+
+// Get auth token from AsyncStorage and set it
+const setAuthToken = async () => {
+  try {
+    const AsyncStorage = require('@react-native-async-storage/async-storage').default;
+    const token = await AsyncStorage.getItem('authToken');
+    if (token) {
+      api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+    }
+  } catch (error) {
+    console.error('Failed to set auth token:', error);
+  }
+};
+
+// Set auth token before making requests
+setAuthToken();
 
 export interface Location {
   name: string;

@@ -2,97 +2,90 @@ import React, { useState } from 'react';
 import {
   View,
   Text,
-  StyleSheet,
+  TextInput,
   TouchableOpacity,
+  StyleSheet,
+  Alert,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
 } from 'react-native';
-import { TextInput } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useAuth } from '../context/AuthContext';
 import { Ionicons } from '@expo/vector-icons';
 import Toast from 'react-native-toast-message';
+import { useAuth } from '../context/AuthContext';
 
 export default function AuthScreen() {
-  const [isLogin, setIsLogin] = useState(true);
-  const [formData, setFormData] = useState({
-    email: '',
-    password: '',
-    name: '',
-    phone: '',
-  });
-  const [loading, setLoading] = useState(false);
   const { login, register } = useAuth();
+  const [isLogin, setIsLogin] = useState(true);
+  const [loading, setLoading] = useState(false);
 
-  const validateForm = () => {
-    if (!formData.email.trim()) {
+  // Form fields
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [name, setName] = useState('');
+  const [phone, setPhone] = useState('');
+
+  const handleSubmit = async () => {
+    // Basic validation
+    if (!email.trim() || !password.trim()) {
       Toast.show({
         type: 'error',
-        text1: 'Email Required',
-        text2: 'Please enter your email address',
+        text1: 'Validation Error',
+        text2: 'Please fill in all required fields',
       });
-      return false;
+      return;
     }
 
-    // Basic email validation
+    if (!isLogin && (!name.trim() || !phone.trim())) {
+      Toast.show({
+        type: 'error',
+        text1: 'Validation Error',
+        text2: 'Please fill in all required fields',
+      });
+      return;
+    }
+
+    // Email validation
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(formData.email.trim())) {
+    if (!emailRegex.test(email)) {
       Toast.show({
         type: 'error',
         text1: 'Invalid Email',
         text2: 'Please enter a valid email address',
       });
-      return false;
+      return;
     }
 
-    if (!formData.password.trim()) {
-      Toast.show({
-        type: 'error',
-        text1: 'Password Required',
-        text2: 'Please enter your password',
-      });
-      return false;
-    }
-
-    // Password strength validation for signup
-    if (!isLogin && formData.password.length < 6) {
+    // Password validation
+    if (password.length < 6) {
       Toast.show({
         type: 'error',
         text1: 'Weak Password',
         text2: 'Password must be at least 6 characters',
       });
-      return false;
+      return;
     }
-
-    if (!isLogin) {
-      if (!formData.name.trim()) {
-        Toast.show({
-          type: 'error',
-          text1: 'Name Required',
-          text2: 'Please enter your full name',
-        });
-        return false;
-      }
-    }
-
-    return true;
-  };
-
-  const handleSubmit = async () => {
-    if (!validateForm()) return;
 
     setLoading(true);
+
     try {
       if (isLogin) {
-        await login(formData.email, formData.password);
+        // Login
+        await login(email.trim(), password);
         Toast.show({
           type: 'success',
           text1: 'Welcome back!',
           text2: 'Login successful',
         });
       } else {
-        await register(formData);
+        // Register
+        await register({
+          email: email.trim(),
+          password,
+          name: name.trim(),
+          phone: phone.trim(),
+        });
         Toast.show({
           type: 'success',
           text1: 'Account created!',
@@ -100,6 +93,7 @@ export default function AuthScreen() {
         });
       }
     } catch (error: any) {
+      console.error('Auth error:', error);
       Toast.show({
         type: 'error',
         text1: 'Authentication Failed',
@@ -110,73 +104,86 @@ export default function AuthScreen() {
     }
   };
 
-  const updateField = (field: string, value: string) => {
-    setFormData((prev) => ({ ...prev, [field]: value }));
+  const resetForm = () => {
+    setEmail('');
+    setPassword('');
+    setName('');
+    setPhone('');
+  };
+
+  const toggleMode = () => {
+    setIsLogin(!isLogin);
+    resetForm();
   };
 
   return (
     <SafeAreaView style={styles.container}>
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        style={styles.container}
+        style={styles.keyboardView}
       >
-        <ScrollView contentContainerStyle={styles.scrollContainer}>
+        <ScrollView contentContainerStyle={styles.scrollContent}>
           <View style={styles.header}>
-            <Ionicons name="car-sport" size={60} color="#007AFF" />
-            <Text style={styles.title}>RideShare</Text>
+            <Ionicons name="car" size={80} color="#007AFF" />
+            <Text style={styles.title}>Car Ride Sharing</Text>
             <Text style={styles.subtitle}>
-              {isLogin ? 'Welcome back!' : 'Join the community'}
+              {isLogin ? 'Welcome back!' : 'Join our community'}
             </Text>
           </View>
 
           <View style={styles.form}>
             {!isLogin && (
-              <View style={styles.inputContainer}>
-                <Ionicons name="person-outline" size={20} color="#666" />
+              <View style={styles.inputGroup}>
+                <Text style={styles.label}>Full Name *</Text>
                 <TextInput
                   style={styles.input}
-                  placeholder="Full Name"
-                  value={formData.name}
-                  onChangeText={(value) => updateField('name', value)}
+                  placeholder="Enter your full name"
+                  value={name}
+                  onChangeText={setName}
                   autoCapitalize="words"
                 />
               </View>
             )}
 
-            <View style={styles.inputContainer}>
-              <Ionicons name="mail-outline" size={20} color="#666" />
+            <View style={styles.inputGroup}>
+              <Text style={styles.label}>Email *</Text>
               <TextInput
                 style={styles.input}
-                placeholder="Email"
-                value={formData.email}
-                onChangeText={(value) => updateField('email', value)}
+                placeholder="Enter your email"
+                value={email}
+                onChangeText={setEmail}
                 keyboardType="email-address"
                 autoCapitalize="none"
+                autoCorrect={false}
               />
             </View>
 
             {!isLogin && (
-              <View style={styles.inputContainer}>
-                <Ionicons name="call-outline" size={20} color="#666" />
+              <View style={styles.inputGroup}>
+                <Text style={styles.label}>Phone Number *</Text>
                 <TextInput
                   style={styles.input}
-                  placeholder="Phone Number"
-                  value={formData.phone}
-                  onChangeText={(value) => updateField('phone', value)}
+                  placeholder="Enter your phone number"
+                  value={phone}
+                  onChangeText={setPhone}
                   keyboardType="phone-pad"
                 />
               </View>
             )}
 
-            <View style={styles.inputContainer}>
-              <Ionicons name="lock-closed-outline" size={20} color="#666" />
+            <View style={styles.inputGroup}>
+              <Text style={styles.label}>Password *</Text>
               <TextInput
                 style={styles.input}
-                placeholder="Password"
-                value={formData.password}
-                onChangeText={(value) => updateField('password', value)}
+                placeholder="Enter your password"
+                value={password}
+                onChangeText={setPassword}
                 secureTextEntry
+                autoCapitalize="none"
               />
+              {!isLogin && (
+                <Text style={styles.hint}>Must be at least 6 characters</Text>
+              )}
             </View>
 
             <TouchableOpacity
@@ -185,18 +192,16 @@ export default function AuthScreen() {
               disabled={loading}
             >
               <Text style={styles.buttonText}>
-                {loading ? 'Loading...' : isLogin ? 'Sign In' : 'Sign Up'}
+                {loading ? 'Please wait...' : (isLogin ? 'Sign In' : 'Create Account')}
               </Text>
             </TouchableOpacity>
 
-            <TouchableOpacity
-              style={styles.switchButton}
-              onPress={() => setIsLogin(!isLogin)}
-            >
+            <TouchableOpacity style={styles.switchButton} onPress={toggleMode}>
               <Text style={styles.switchText}>
                 {isLogin
-                  ? "Don't have an account? Sign Up"
-                  : 'Already have an account? Sign In'}
+                  ? "Don't have an account? Sign up"
+                  : 'Already have an account? Sign in'
+                }
               </Text>
             </TouchableOpacity>
           </View>
@@ -209,9 +214,12 @@ export default function AuthScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f8f9fa',
+    backgroundColor: '#fff',
   },
-  scrollContainer: {
+  keyboardView: {
+    flex: 1,
+  },
+  scrollContent: {
     flexGrow: 1,
     justifyContent: 'center',
     padding: 20,
@@ -221,57 +229,66 @@ const styles = StyleSheet.create({
     marginBottom: 40,
   },
   title: {
-    fontSize: 32,
+    fontSize: 28,
     fontWeight: 'bold',
     color: '#1a1a1a',
-    marginTop: 16,
+    marginTop: 20,
+    marginBottom: 8,
   },
   subtitle: {
     fontSize: 16,
     color: '#666',
-    marginTop: 8,
+    textAlign: 'center',
   },
   form: {
     width: '100%',
   },
-  inputContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#fff',
-    borderRadius: 12,
-    paddingHorizontal: 16,
-    paddingVertical: 16,
-    marginBottom: 16,
-    borderWidth: 1,
-    borderColor: '#e1e5e9',
+  inputGroup: {
+    marginBottom: 20,
+  },
+  label: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#1a1a1a',
+    marginBottom: 8,
   },
   input: {
-    flex: 1,
-    marginLeft: 12,
+    borderWidth: 1,
+    borderColor: '#e1e5e9',
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
     fontSize: 16,
-    color: '#1a1a1a',
+    backgroundColor: '#f8f9fa',
+  },
+  hint: {
+    fontSize: 12,
+    color: '#666',
+    marginTop: 4,
   },
   button: {
     backgroundColor: '#007AFF',
     borderRadius: 12,
     paddingVertical: 16,
     alignItems: 'center',
-    marginTop: 8,
+    marginTop: 20,
   },
   buttonDisabled: {
     backgroundColor: '#ccc',
   },
   buttonText: {
     color: '#fff',
-    fontSize: 16,
+    fontSize: 18,
     fontWeight: '600',
   },
   switchButton: {
     alignItems: 'center',
-    marginTop: 24,
+    marginTop: 20,
+    paddingVertical: 10,
   },
   switchText: {
     color: '#007AFF',
-    fontSize: 14,
+    fontSize: 16,
+    fontWeight: '500',
   },
 });

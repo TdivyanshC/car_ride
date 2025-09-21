@@ -43,7 +43,7 @@ class RouteInfo(BaseModel):
     duration: float  # in seconds
     route: Optional[Dict[str, Any]] = None
 
-# User model
+# User model - Clean and simple
 class User(MongoBaseModel):
     email: EmailStr
     password: str  # hashed password

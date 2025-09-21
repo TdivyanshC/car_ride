@@ -1,17 +1,6 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { authApi } from '../api/auth';
-
-export interface User {
-  id: string;
-  email: string;
-  name: string;
-  phone: string;
-  is_rider: boolean;
-  is_passenger: boolean;
-  profile_image?: string;
-  created_at: string;
-}
+import { authApi, User } from '../api/auth';
 
 interface AuthContextType {
   user: User | null;
@@ -41,12 +30,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       const token = await AsyncStorage.getItem('authToken');
       if (token) {
+        authApi.setAuthToken(token);
         const userData = await authApi.getCurrentUser();
         setUser(userData.user);
       }
     } catch (error) {
       console.error('Auth check failed:', error);
       await AsyncStorage.removeItem('authToken');
+      authApi.removeAuthToken();
     } finally {
       setLoading(false);
     }
@@ -56,9 +47,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       const response = await authApi.login({ email, password });
       await AsyncStorage.setItem('authToken', response.access_token);
+      authApi.setAuthToken(response.access_token);
       setUser(response.user);
     } catch (error: any) {
-      throw new Error(error.response?.data?.detail || 'Login failed');
+      throw error;
     }
   };
 
@@ -69,23 +61,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     phone: string;
   }) => {
     try {
-      console.log('🔵 Starting registration for:', userData.email);
       const response = await authApi.register(userData);
-      console.log('✅ Registration successful:', response);
       await AsyncStorage.setItem('authToken', response.access_token);
+      authApi.setAuthToken(response.access_token);
       setUser(response.user);
     } catch (error: any) {
-      console.error('❌ Registration error:', error);
-      console.error('Error response:', error.response);
-      console.error('Error message:', error.message);
-      const errorMessage = error.response?.data?.detail || error.message || 'Registration failed';
-      throw new Error(errorMessage);
+      throw error;
     }
   };
 
   const logout = async () => {
     try {
       await AsyncStorage.removeItem('authToken');
+      authApi.removeAuthToken();
       setUser(null);
     } catch (error) {
       console.error('Logout failed:', error);
@@ -103,7 +91,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         });
       }
     } catch (error: any) {
-      throw new Error(error.response?.data?.detail || 'Role toggle failed');
+      throw error;
     }
   };
 

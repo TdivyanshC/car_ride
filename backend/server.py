@@ -90,76 +90,109 @@ async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(s
 
     return User(**user_doc)
 
-# Authentication routes
-@api_router.post("/auth/register", response_model=TokenResponse)
+# Authentication routes - Clean and simple
+@api_router.post("/auth/register")
 async def register(user_data: UserCreate):
-    print(f"🔵 Registration request received: {user_data.email}")
+    """Register a new user"""
+    try:
+        users_collection = Database.get_collection(COLLECTIONS["users"])
 
-    users_collection = Database.get_collection(COLLECTIONS["users"])
+        # Check if user already exists
+        existing_user = await users_collection.find_one({"email": user_data.email})
+        if existing_user:
+            raise HTTPException(status_code=400, detail="Email already registered")
 
-    # Check if user exists
-    existing_user = await users_collection.find_one({"email": user_data.email})
-    if existing_user:
-        print(f"❌ User already exists: {user_data.email}")
-        raise HTTPException(status_code=400, detail="Email already registered")
+        # Hash password
+        hashed_password = get_password_hash(user_data.password)
 
-    # Hash password and create user
-    hashed_password = get_password_hash(user_data.password)
-    user = User(
-        email=user_data.email,
-        password=hashed_password,
-        name=user_data.name,
-        phone=user_data.phone,
-        is_rider=False,
-        is_passenger=True
-    )
-
-    # Save to MongoDB
-    user_dict = user.dict(by_alias=True)
-    result = await users_collection.insert_one(user_dict)
-
-    print(f"✅ User registered successfully: {user_data.email}, ID: {result.inserted_id}")
-    print(f"📊 User saved to MongoDB Atlas")
-
-    # Create token
-    access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
-    access_token = create_access_token(
-        data={"sub": str(result.inserted_id)}, expires_delta=access_token_expires
-    )
-
-    print(f"🎫 JWT token created for user: {result.inserted_id}")
-    return TokenResponse(
-        access_token=access_token,
-        token_type="bearer",
-        user=user
-    )
-
-@api_router.post("/auth/login", response_model=TokenResponse)
-async def login(login_data: UserLogin):
-    users_collection = Database.get_collection(COLLECTIONS["users"])
-
-    user_doc = await users_collection.find_one({"email": login_data.email})
-    if not user_doc or not verify_password(login_data.password, user_doc["password"]):
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Incorrect email or password"
+        # Create user object
+        user = User(
+            email=user_data.email,
+            password=hashed_password,
+            name=user_data.name,
+            phone=user_data.phone,
+            is_rider=False,
+            is_passenger=True
         )
 
-    user = User(**user_doc)
-    access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
-    access_token = create_access_token(
-        data={"sub": str(user.id)}, expires_delta=access_token_expires
-    )
+        # Save to database
+        user_dict = user.dict(by_alias=True)
+        result = await users_collection.insert_one(user_dict)
 
-    return TokenResponse(
-        access_token=access_token,
-        token_type="bearer",
-        user=user
-    )
+        # Create JWT token
+        access_token = create_access_token(data={"sub": str(result.inserted_id)})
 
-@api_router.get("/auth/me", response_model=User)
+        # Return simple response to avoid Unicode issues
+        return {
+            "access_token": access_token,
+            "token_type": "bearer",
+            "user": {
+                "id": str(user.id),
+                "email": user.email,
+                "name": user.name,
+                "phone": user.phone,
+                "is_rider": user.is_rider,
+                "is_passenger": user.is_passenger
+            }
+        }
+
+    except Exception as e:
+        print(f"Registration error: {e}")
+        raise HTTPException(status_code=500, detail="Registration failed")
+
+@api_router.post("/auth/login")
+async def login(login_data: UserLogin):
+    """Login user"""
+    try:
+        users_collection = Database.get_collection(COLLECTIONS["users"])
+
+        # Find user by email
+        user_doc = await users_collection.find_one({"email": login_data.email})
+        if not user_doc:
+            raise HTTPException(status_code=401, detail="Invalid email or password")
+
+        # Verify password
+        if not verify_password(login_data.password, user_doc["password"]):
+            raise HTTPException(status_code=401, detail="Invalid email or password")
+
+        # Create user object
+        user = User(**user_doc)
+
+        # Create JWT token
+        access_token = create_access_token(data={"sub": str(user.id)})
+
+        # Return simple response to avoid Unicode issues
+        return {
+            "access_token": access_token,
+            "token_type": "bearer",
+            "user": {
+                "id": str(user.id),
+                "email": user.email,
+                "name": user.name,
+                "phone": user.phone,
+                "is_rider": user.is_rider,
+                "is_passenger": user.is_passenger
+            }
+        }
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"Login error: {e}")
+        raise HTTPException(status_code=500, detail="Login failed")
+
+@api_router.get("/auth/me")
 async def get_current_user_info(current_user: User = Depends(get_current_user)):
-    return current_user
+    # Return simple dict to avoid Unicode encoding issues
+    return {
+        "id": str(current_user.id),
+        "email": current_user.email,
+        "name": current_user.name,
+        "phone": current_user.phone,
+        "is_rider": current_user.is_rider,
+        "is_passenger": current_user.is_passenger,
+        "profile_image": current_user.profile_image
+    }
 
 # User routes
 @api_router.put("/users/toggle-role")
@@ -176,7 +209,7 @@ async def toggle_user_role(current_user: User = Depends(get_current_user)):
         {"$set": {"is_rider": new_is_rider, "is_passenger": new_is_passenger}}
     )
 
-    return {"message": "Role updated successfully", "is_rider": new_is_rider}
+    return {"message": "Role updated successfully", "is_rider": bool(new_is_rider)}
 
 # Ride routes
 @api_router.post("/rides", response_model=Ride)
@@ -203,7 +236,7 @@ async def create_ride(ride_data: RideCreate, current_user: User = Depends(get_cu
     ride_dict = ride.dict(by_alias=True)
     result = await rides_collection.insert_one(ride_dict)
 
-    print(f"🚗 Ride created: {ride.origin.name} → {ride.destination.name} (${ride.price_per_seat})")
+    print(f"Ride created: {ride.origin.name} -> {ride.destination.name} (${ride.price_per_seat})")
     return ride
 
 @api_router.get("/rides", response_model=List[Ride])
@@ -228,12 +261,12 @@ async def search_rides(
             next_day = target_date + timedelta(days=1)
             query["departure_time"] = {"$gte": target_date, "$lt": next_day}
         except Exception as e:
-            print(f"⚠️ Date parsing error: {e}")
+            print(f"Date parsing error: {e}")
 
     rides_docs = await rides_collection.find(query).to_list(100)
     rides = [Ride(**ride_doc) for ride_doc in rides_docs]
 
-    print(f"🔍 Found {len(rides)} rides matching criteria")
+    print(f"Found {len(rides)} rides matching criteria")
     return rides
 
 @api_router.get("/rides/my", response_model=List[Ride])
@@ -283,7 +316,7 @@ async def create_booking(booking_data: BookingCreate, current_user: User = Depen
         {"$set": {"available_seats": new_available_seats}}
     )
 
-    print(f"🎫 Booking created: {booking.seats_booked} seats for ${booking.total_price}")
+    print(f"Booking created: {booking.seats_booked} seats for ${booking.total_price}")
     return booking
 
 @api_router.get("/bookings/my", response_model=List[Booking])
@@ -308,18 +341,18 @@ async def get_chat_messages(ride_id: str, current_user: User = Depends(get_curre
 # Socket.IO events
 @sio.event
 async def connect(sid, environ):
-    print(f"📡 Client {sid} connected to chat")
+    print(f"Client {sid} connected to chat")
 
 @sio.event
 async def disconnect(sid):
-    print(f"📡 Client {sid} disconnected from chat")
+    print(f"Client {sid} disconnected from chat")
 
 @sio.event
 async def join_ride_chat(sid, data):
     ride_id = data.get("ride_id")
     if ride_id:
         await sio.enter_room(sid, f"ride_{ride_id}")
-        print(f"💬 Client {sid} joined ride {ride_id} chat")
+        print(f"Client {sid} joined ride {ride_id} chat")
 
 @sio.event
 async def send_message(sid, data):
@@ -347,10 +380,10 @@ async def send_message(sid, data):
 
         # Broadcast message to room
         await sio.emit('new_message', message_dict, room=f"ride_{ride_id}")
-        print(f"💬 Message sent in ride {ride_id}: {sender_name}")
+        print(f"Message sent in ride {ride_id}: {sender_name}")
 
     except Exception as e:
-        print(f"❌ Error sending message: {e}")
+        print(f"Error sending message: {e}")
 
 # Include the router in the main app
 app.include_router(api_router)
@@ -358,7 +391,7 @@ app.include_router(api_router)
 app.add_middleware(
     CORSMiddleware,
     allow_credentials=True,
-    allow_origins=["*"],
+    allow_origins=["*"],  # Allow all origins for development
     allow_methods=["*"],
     allow_headers=["*"],
 )
@@ -513,7 +546,8 @@ main_app = socket_app
 
 if __name__ == "__main__":
     import uvicorn
-    print("Starting server on http://localhost:8001")
+    print("Starting server on http://0.0.0.0:8001")
+    print("Accessible from mobile devices at http://192.168.1.7:8001")
     print("Socket.IO enabled for real-time chat")
     print("MongoDB Atlas integration active")
     uvicorn.run(main_app, host="0.0.0.0", port=8001)

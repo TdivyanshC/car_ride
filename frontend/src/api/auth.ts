@@ -1,24 +1,17 @@
 import axios from 'axios';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 
-const API_URL = process.env.EXPO_PUBLIC_BACKEND_URL || 'http://localhost:8001';
+const API_BASE_URL = process.env.EXPO_PUBLIC_BACKEND_URL || 'http://localhost:8001';
 
-// Create axios instance
-const api = axios.create({
-  baseURL: `${API_URL}/api`,
-  headers: {
-    'Content-Type': 'application/json',
-  },
-});
-
-// Add auth token to requests
-api.interceptors.request.use(async (config) => {
-  const token = await AsyncStorage.getItem('authToken');
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`;
-  }
-  return config;
-});
+export interface User {
+  id: string;
+  email: string;
+  name: string;
+  phone: string;
+  is_rider: boolean;
+  is_passenger: boolean;
+  profile_image?: string;
+  created_at: string;
+}
 
 export interface LoginRequest {
   email: string;
@@ -35,38 +28,70 @@ export interface RegisterRequest {
 export interface AuthResponse {
   access_token: string;
   token_type: string;
-  user: {
-    id: string;
-    email: string;
-    name: string;
-    phone: string;
-    is_rider: boolean;
-    is_passenger: boolean;
-    profile_image?: string;
-    created_at: string;
-  };
+  user: User;
 }
 
-export const authApi = {
-  login: async (data: LoginRequest): Promise<AuthResponse> => {
-    const response = await api.post('/auth/login', data);
-    return response.data;
-  },
+class AuthAPI {
+  private api = axios.create({
+    baseURL: `${API_BASE_URL}/api`,
+    headers: {
+      'Content-Type': 'application/json',
+    },
+  });
 
-  register: async (data: RegisterRequest): Promise<AuthResponse> => {
-    const response = await api.post('/auth/register', data);
-    return response.data;
-  },
+  // Set auth token for subsequent requests
+  setAuthToken(token: string) {
+    this.api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+  }
 
-  getCurrentUser: async (): Promise<AuthResponse> => {
-    const response = await api.get('/auth/me');
-    return { ...response.data, access_token: '', token_type: 'bearer' };
-  },
+  // Remove auth token
+  removeAuthToken() {
+    delete this.api.defaults.headers.common['Authorization'];
+  }
 
-  toggleRole: async (): Promise<{ message: string; is_rider: boolean }> => {
-    const response = await api.put('/users/toggle-role');
-    return response.data;
-  },
-};
+  // Login user
+  async login(credentials: LoginRequest): Promise<AuthResponse> {
+    try {
+      const response = await this.api.post('/auth/login', credentials);
+      return response.data;
+    } catch (error: any) {
+      console.error('Login API error:', error.response?.data || error.message);
+      throw new Error(error.response?.data?.detail || 'Login failed');
+    }
+  }
 
-export default api;
+  // Register user
+  async register(userData: RegisterRequest): Promise<AuthResponse> {
+    try {
+      const response = await this.api.post('/auth/register', userData);
+      return response.data;
+    } catch (error: any) {
+      console.error('Register API error:', error.response?.data || error.message);
+      throw new Error(error.response?.data?.detail || 'Registration failed');
+    }
+  }
+
+  // Get current user info
+  async getCurrentUser(): Promise<{ user: User }> {
+    try {
+      const response = await this.api.get('/auth/me');
+      return response.data;
+    } catch (error: any) {
+      console.error('Get current user API error:', error.response?.data || error.message);
+      throw new Error(error.response?.data?.detail || 'Failed to get user info');
+    }
+  }
+
+  // Toggle user role (rider/passenger)
+  async toggleRole(): Promise<{ message: string; is_rider: boolean }> {
+    try {
+      const response = await this.api.put('/users/toggle-role');
+      return response.data;
+    } catch (error: any) {
+      console.error('Toggle role API error:', error.response?.data || error.message);
+      throw new Error(error.response?.data?.detail || 'Failed to toggle role');
+    }
+  }
+}
+
+export const authApi = new AuthAPI();
