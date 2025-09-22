@@ -12,10 +12,12 @@ import { Ionicons } from '@expo/vector-icons';
 import { router, useLocalSearchParams } from 'expo-router';
 import { ridesApi, Ride } from '../api/rides';
 import { useQuery } from '@tanstack/react-query';
+import { useAuth } from '../context/AuthContext';
 import Toast from 'react-native-toast-message';
 
 export default function SearchResultsScreen() {
   const params = useLocalSearchParams();
+  const { user } = useAuth();
 
   // Parse parameters using useMemo to avoid infinite loops
   const { origin, destination, searchDate } = useMemo(() => {
@@ -44,7 +46,17 @@ export default function SearchResultsScreen() {
     retryDelay: 1000,
   });
 
-  const handleBookRide = async (rideId: string, availableSeats: number) => {
+  const handleBookRide = async (rideId: string, availableSeats: number, riderId: string) => {
+    // Check if user is trying to book their own ride
+    if (user && riderId === user.id) {
+      Toast.show({
+        type: 'error',
+        text1: 'Cannot Book Own Ride',
+        text2: 'You cannot book your own ride.',
+      });
+      return;
+    }
+
     try {
       console.log('🔄 Booking ride with ID:', rideId);
       const response = await ridesApi.createBooking({
@@ -79,7 +91,7 @@ export default function SearchResultsScreen() {
   };
 
   const formatPrice = (price: number) => {
-    return `$${price.toFixed(2)}`;
+    return `₹${price.toFixed(2)}`;
   };
 
   return (
@@ -174,13 +186,18 @@ export default function SearchResultsScreen() {
               <TouchableOpacity
                 style={[
                   styles.bookButton,
-                  ride.available_seats === 0 && styles.bookButtonDisabled,
+                  (ride.available_seats === 0 || (user && ride.rider_id === user.id)) && styles.bookButtonDisabled,
                 ]}
-                onPress={() => ride._id && handleBookRide(ride._id, ride.available_seats)}
-                disabled={ride.available_seats === 0 || !ride._id}
+                onPress={() => ride._id && handleBookRide(ride._id, ride.available_seats, ride.rider_id)}
+                disabled={Boolean(ride.available_seats === 0 || !ride._id || (user?.id && ride.rider_id === user.id))}
               >
                 <Text style={styles.bookButtonText}>
-                  {ride.available_seats === 0 ? 'Full' : 'Book'}
+                  {user && ride.rider_id === user.id
+                    ? 'Your Ride'
+                    : ride.available_seats === 0
+                      ? 'Full'
+                      : 'Book'
+                  }
                 </Text>
               </TouchableOpacity>
             </View>

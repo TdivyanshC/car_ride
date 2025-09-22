@@ -34,8 +34,9 @@ export default function SearchScreen() {
   const [currentLocation, setCurrentLocation] = useState<any>(null);
   const [locationPermission, setLocationPermission] = useState(false);
 
-  // Predefined locations for search
+  // Predefined locations for search - expanded with colleges, landmarks, societies
   const predefinedLocations = [
+    // Major Cities
     { name: 'Mumbai, Maharashtra', lat: 19.0760, lng: 72.8777 },
     { name: 'Delhi, India', lat: 28.7041, lng: 77.1025 },
     { name: 'Bangalore, Karnataka', lat: 12.9716, lng: 77.5946 },
@@ -46,6 +47,66 @@ export default function SearchScreen() {
     { name: 'Ahmedabad, Gujarat', lat: 23.0225, lng: 72.5714 },
     { name: 'Jaipur, Rajasthan', lat: 26.9124, lng: 75.7873 },
     { name: 'Surat, Gujarat', lat: 21.1702, lng: 72.8311 },
+
+    // Colleges & Universities
+    { name: 'IIT Delhi', lat: 28.5440, lng: 77.1926 },
+    { name: 'IIT Bombay', lat: 19.1334, lng: 72.9133 },
+    { name: 'IIT Madras', lat: 12.9915, lng: 80.2337 },
+    { name: 'IIT Kanpur', lat: 26.5123, lng: 80.2329 },
+    { name: 'IIT Kharagpur', lat: 22.3145, lng: 87.3094 },
+    { name: 'IIT Roorkee', lat: 29.8644, lng: 77.8964 },
+    { name: 'BITS Pilani', lat: 28.3588, lng: 75.5880 },
+    { name: 'Delhi University', lat: 28.6863, lng: 77.2217 },
+    { name: 'JNU Delhi', lat: 28.5402, lng: 77.1662 },
+    { name: 'Anna University', lat: 13.0067, lng: 80.2565 },
+
+    // Landmarks & Tourist Spots
+    { name: 'Taj Mahal, Agra', lat: 27.1751, lng: 78.0421 },
+    { name: 'Red Fort, Delhi', lat: 28.6562, lng: 77.2410 },
+    { name: 'Gateway of India, Mumbai', lat: 18.9220, lng: 72.8347 },
+    { name: 'India Gate, Delhi', lat: 28.6129, lng: 77.2295 },
+    { name: 'Qutub Minar, Delhi', lat: 28.5244, lng: 77.1855 },
+    { name: 'Victoria Memorial, Kolkata', lat: 22.5448, lng: 88.3426 },
+    { name: 'Charminar, Hyderabad', lat: 17.3616, lng: 78.4747 },
+    { name: 'Mysore Palace', lat: 12.3051, lng: 76.6551 },
+    { name: 'Hawa Mahal, Jaipur', lat: 26.9239, lng: 75.8267 },
+    { name: 'Golden Temple, Amritsar', lat: 31.6200, lng: 74.8765 },
+
+    // Societies & Residential Areas
+    { name: 'DLF Phase 1, Gurgaon', lat: 28.4724, lng: 77.1036 },
+    { name: 'Sector 62, Noida', lat: 28.6245, lng: 77.3575 },
+    { name: 'Powai, Mumbai', lat: 19.1197, lng: 72.9051 },
+    { name: 'Whitefield, Bangalore', lat: 12.9698, lng: 77.7500 },
+    { name: 'T. Nagar, Chennai', lat: 13.0418, lng: 80.2341 },
+    { name: 'Salt Lake City, Kolkata', lat: 22.5735, lng: 88.4331 },
+    { name: 'Banjara Hills, Hyderabad', lat: 17.4156, lng: 78.4349 },
+    { name: 'Vastrapur, Ahmedabad', lat: 23.0385, lng: 72.5293 },
+    { name: 'Malviya Nagar, Jaipur', lat: 26.8549, lng: 75.8241 },
+    { name: 'Adajan, Surat', lat: 21.1946, lng: 72.7932 },
+
+    // Railway Stations & Airports
+    { name: 'New Delhi Railway Station', lat: 28.6420, lng: 77.2194 },
+    { name: 'Mumbai CST', lat: 18.9398, lng: 72.8354 },
+    { name: 'Howrah Station, Kolkata', lat: 22.5851, lng: 88.3468 },
+    { name: 'Indira Gandhi International Airport', lat: 28.5562, lng: 77.1000 },
+    { name: 'Chhatrapati Shivaji Maharaj International Airport', lat: 19.0896, lng: 72.8656 },
+    { name: 'Kempegowda International Airport', lat: 13.1986, lng: 77.7066 },
+    { name: 'Chennai International Airport', lat: 12.9941, lng: 80.1709 },
+    { name: 'Rajiv Gandhi International Airport', lat: 17.2403, lng: 78.4294 },
+    { name: 'Netaji Subhas Chandra Bose International Airport', lat: 22.6533, lng: 88.4467 },
+    { name: 'Sardar Vallabhbhai Patel International Airport', lat: 23.0733, lng: 72.6266 },
+
+    // Shopping Malls & Commercial Areas
+    { name: 'Connaught Place, Delhi', lat: 28.6304, lng: 77.2177 },
+    { name: 'Phoenix Mall, Mumbai', lat: 19.0865, lng: 72.8887 },
+    { name: 'Forum Mall, Bangalore', lat: 12.9345, lng: 77.6113 },
+    { name: 'Express Avenue, Chennai', lat: 13.0587, lng: 80.2642 },
+    { name: 'South City Mall, Kolkata', lat: 22.5014, lng: 88.3617 },
+    { name: 'Inorbit Mall, Hyderabad', lat: 17.4343, lng: 78.3863 },
+    { name: 'AlphaOne Mall, Ahmedabad', lat: 23.0295, lng: 72.5585 },
+    { name: 'World Trade Park, Jaipur', lat: 26.8500, lng: 75.8000 },
+    { name: 'VR Mall, Surat', lat: 21.1702, lng: 72.8311 },
+    { name: 'Palladium Mall, Pune', lat: 18.5308, lng: 73.8282 },
   ];
 
   const [searchResults, setSearchResults] = useState<any[]>([]);
@@ -92,8 +153,22 @@ export default function SearchScreen() {
   const selectLocation = (location: any) => {
     if (selectingOrigin) {
       setSearchParams(prev => ({ ...prev, origin: location }));
+      // Update map region to show the selected location
+      setMapRegion({
+        latitude: location.lat,
+        longitude: location.lng,
+        latitudeDelta: 0.05,
+        longitudeDelta: 0.05,
+      });
     } else {
       setSearchParams(prev => ({ ...prev, destination: location }));
+      // Update map region to show the selected location
+      setMapRegion({
+        latitude: location.lat,
+        longitude: location.lng,
+        latitudeDelta: 0.05,
+        longitudeDelta: 0.05,
+      });
     }
     setLocationModalVisible(false);
     Toast.show({
@@ -155,7 +230,7 @@ export default function SearchScreen() {
           <Ionicons name="location" size={20} color="#007AFF" />
           <View style={styles.locationContent}>
             <Text style={styles.locationLabel}>From</Text>
-            <Text style={styles.locationValue}>
+            <Text style={[styles.locationValue, !searchParams.origin && styles.locationPlaceholder]}>
               {searchParams.origin ? searchParams.origin.name : 'Select pickup location'}
             </Text>
           </View>
@@ -173,7 +248,7 @@ export default function SearchScreen() {
           <Ionicons name="flag" size={20} color="#FF3B30" />
           <View style={styles.locationContent}>
             <Text style={styles.locationLabel}>To</Text>
-            <Text style={styles.locationValue}>
+            <Text style={[styles.locationValue, !searchParams.destination && styles.locationPlaceholder]}>
               {searchParams.destination ? searchParams.destination.name : 'Select destination'}
             </Text>
           </View>
@@ -253,7 +328,7 @@ export default function SearchScreen() {
             style={styles.map}
             region={mapRegion}
             onRegionChangeComplete={setMapRegion}
-          >
+           >
             {currentLocation && (
               <Marker
                 coordinate={{
@@ -262,6 +337,28 @@ export default function SearchScreen() {
                 }}
                 title="Current Location"
                 pinColor="blue"
+              />
+            )}
+            {searchParams.origin && (
+              <Marker
+                coordinate={{
+                  latitude: searchParams.origin.lat,
+                  longitude: searchParams.origin.lng,
+                }}
+                title="Pickup Location"
+                description={searchParams.origin.name}
+                pinColor="green"
+              />
+            )}
+            {searchParams.destination && (
+              <Marker
+                coordinate={{
+                  latitude: searchParams.destination.lat,
+                  longitude: searchParams.destination.lng,
+                }}
+                title="Drop Location"
+                description={searchParams.destination.name}
+                pinColor="red"
               />
             )}
           </MapView>
@@ -360,6 +457,9 @@ const styles = StyleSheet.create({
   locationValue: {
     fontSize: 16,
     color: '#1a1a1a',
+  },
+  locationPlaceholder: {
+    color: '#999',
   },
   timeButton: {
     flexDirection: 'row',

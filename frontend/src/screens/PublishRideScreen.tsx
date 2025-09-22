@@ -303,7 +303,7 @@ export default function PublishRideScreen() {
           <View style={styles.priceContainer}>
             <Text style={styles.priceLabel}>Price per seat</Text>
             <View style={styles.priceInputContainer}>
-              <Text style={styles.currencySymbol}>$</Text>
+              <Text style={styles.currencySymbol}>₹</Text>
               <TextInput
                 style={styles.priceInput}
                 placeholder="25"
