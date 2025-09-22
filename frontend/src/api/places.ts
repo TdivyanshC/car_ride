@@ -1,6 +1,7 @@
 import { Location } from './rides';
 
 const MAPMYINDIA_API_KEY = process.env.EXPO_PUBLIC_MAPMYINDIA_API_KEY;
+const MAPMYINDIA_CLIENT_SECRET = process.env.EXPO_PUBLIC_MAPMYINDIA_CLIENT_SECRET;
 
 export interface PlaceSuggestion {
   place_id: string;
@@ -36,10 +37,15 @@ export const placesApi = {
     try {
       const url = `https://atlas.mapmyindia.com/api/places/search/json?query=${encodeURIComponent(
         input
-      )}&key=${MAPMYINDIA_API_KEY}&region=ind&pod=CITY&filter=`;
+      )}&key=${MAPMYINDIA_API_KEY}&region=ind`;
+
+      console.log('MapMyIndia API URL:', url);
 
       const response = await fetch(url);
+      console.log('MapMyIndia API response status:', response.status);
+
       const data = await response.json();
+      console.log('MapMyIndia API response:', data);
 
       if (data.status === 'success' && data.suggestedLocations) {
         return data.suggestedLocations.map((item: MapMyIndiaSuggestion) => ({
@@ -51,7 +57,7 @@ export const placesApi = {
           },
         }));
       } else {
-        console.warn('MapMyIndia API error:', data.message || 'Unknown error');
+        console.warn('MapMyIndia API error:', data.message || 'Unknown error', 'Status:', data.status);
         return [];
       }
     } catch (error) {
@@ -68,8 +74,13 @@ export const placesApi = {
     try {
       const url = `https://atlas.mapmyindia.com/api/places/place_detail/json?place_id=${eLoc}&key=${MAPMYINDIA_API_KEY}`;
 
+      console.log('MapMyIndia Place Details URL:', url);
+
       const response = await fetch(url);
+      console.log('MapMyIndia Place Details response status:', response.status);
+
       const data = await response.json();
+      console.log('MapMyIndia Place Details response:', data);
 
       if (data.status === 'success' && data.places && data.places.length > 0) {
         const place = data.places[0];
@@ -79,7 +90,7 @@ export const placesApi = {
           lng: parseFloat(place.longitude),
         };
       } else {
-        console.warn('Place details API error:', data.message || 'Unknown error');
+        console.warn('Place details API error:', data.message || 'Unknown error', 'Status:', data.status);
         return null;
       }
     } catch (error) {

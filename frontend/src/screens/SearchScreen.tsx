@@ -233,9 +233,11 @@ export default function SearchScreen() {
             display="default"
             minimumDate={new Date()}
             onChange={(event, selectedDate) => {
-              setShowDatePicker(false);
-              if (selectedDate) {
+              if (event.type === 'dismissed') {
+                setShowDatePicker(false);
+              } else if (selectedDate) {
                 selectDateTime(selectedDate);
+                setShowDatePicker(false);
               }
             }}
           />

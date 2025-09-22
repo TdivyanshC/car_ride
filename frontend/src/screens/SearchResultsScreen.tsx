@@ -138,7 +138,17 @@ export default function SearchResultsScreen() {
         )}
 
         {rides.map((ride) => (
-          <View key={ride._id} style={styles.rideCard}>
+          <TouchableOpacity
+            key={ride._id}
+            style={styles.rideCard}
+            onPress={() => {
+              router.push({
+                pathname: '/ride-details',
+                params: { ride: JSON.stringify(ride) },
+              } as any);
+            }}
+            activeOpacity={0.7}
+          >
             <View style={styles.rideHeader}>
               <View style={styles.riderInfo}>
                 <Ionicons name="person-circle" size={32} color="#007AFF" />
@@ -188,7 +198,10 @@ export default function SearchResultsScreen() {
                   styles.bookButton,
                   (ride.available_seats === 0 || (user && ride.rider_id === user.id)) && styles.bookButtonDisabled,
                 ]}
-                onPress={() => ride._id && handleBookRide(ride._id, ride.available_seats, ride.rider_id)}
+                onPress={(e) => {
+                  e.stopPropagation(); // Prevent card click when pressing book button
+                  ride._id && handleBookRide(ride._id, ride.available_seats, ride.rider_id);
+                }}
                 disabled={Boolean(ride.available_seats === 0 || !ride._id || (user?.id && ride.rider_id === user.id))}
               >
                 <Text style={styles.bookButtonText}>
@@ -205,7 +218,7 @@ export default function SearchResultsScreen() {
             {ride.description && (
               <Text style={styles.description}>{ride.description}</Text>
             )}
-          </View>
+          </TouchableOpacity>
         ))}
 
         {rides.length === 0 && !isLoading && (
