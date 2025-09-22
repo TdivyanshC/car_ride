@@ -12,6 +12,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { ridesApi, Ride } from '../api/rides';
 import { useQuery } from '@tanstack/react-query';
+import Toast from 'react-native-toast-message';
 
 export default function SearchScreen() {
   const [searchParams, setSearchParams] = useState({
@@ -26,6 +27,8 @@ export default function SearchScreen() {
     queryFn: () => ridesApi.searchRides(),
     retry: 3,
     retryDelay: 1000,
+    cacheTime: 5 * 60 * 1000, // Cache for 5 minutes
+    staleTime: 30 * 1000, // Consider data fresh for 30 seconds
   });
 
   const handleBookRide = async (rideId: string, availableSeats: number) => {
@@ -36,11 +39,19 @@ export default function SearchScreen() {
         seats_requested: 1,
       });
       console.log('✅ Booking successful:', response);
-      Alert.alert('Success', 'Ride booked successfully!');
+      Toast.show({
+        type: 'success',
+        text1: 'Ride Booked!',
+        text2: 'Your booking has been confirmed successfully.',
+      });
       refetch();
     } catch (error: any) {
       console.log('❌ Booking failed:', error.response?.data);
-      Alert.alert('Error', error.response?.data?.detail || 'Booking failed');
+      Toast.show({
+        type: 'error',
+        text1: 'Booking Failed',
+        text2: error.response?.data?.detail || 'Unable to book ride. Please try again.',
+      });
     }
   };
 

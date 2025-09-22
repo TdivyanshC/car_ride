@@ -103,7 +103,7 @@ export default function MyRidesScreen() {
         {activeTab === 'booked' && (
           <>
             {myBookings.map((booking) => (
-              <View key={booking.id} style={styles.rideCard}>
+              <View key={booking.id || booking._id || Math.random()} style={styles.rideCard}>
                 <View style={styles.rideHeader}>
                   <View style={styles.statusBadge}>
                     <Ionicons
@@ -137,7 +137,7 @@ export default function MyRidesScreen() {
                   </Text>
                 </View>
 
-                <Text style={styles.bookingId}>Booking ID: {booking.id.slice(0, 8)}</Text>
+                <Text style={styles.bookingId}>Booking ID: {(booking.id || booking._id || 'N/A').slice(0, 8)}</Text>
               </View>
             ))}
 
@@ -173,7 +173,7 @@ export default function MyRidesScreen() {
                   </View>
                   <TouchableOpacity
                     style={styles.chatButton}
-                    onPress={() => openChat(ride._id)}
+                    onPress={() => openChat(ride._id || ride.id || '')}
                   >
                     <Ionicons name="chatbubble" size={16} color="#007AFF" />
                   </TouchableOpacity>

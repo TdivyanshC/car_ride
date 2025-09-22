@@ -46,8 +46,8 @@ export interface CreateRideRequest {
 }
 
 export interface Ride {
-  _id: string;
-  id: string;
+  _id?: string;
+  id?: string;
   rider_id: string;
   rider_name: string;
   origin: Location;
@@ -67,7 +67,8 @@ export interface CreateBookingRequest {
 }
 
 export interface Booking {
-  id: string;
+  id?: string;
+  _id?: string;
   ride_id: string;
   passenger_id: string;
   passenger_name: string;

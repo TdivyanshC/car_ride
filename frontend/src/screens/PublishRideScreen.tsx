@@ -13,25 +13,20 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import MapView, { Marker, PROVIDER_GOOGLE } from 'react-native-maps';
-import { ridesApi } from '../api/rides';
+import { ridesApi, Location } from '../api/rides';
 import Toast from 'react-native-toast-message';
 
 export default function PublishRideScreen() {
   const [rideData, setRideData] = useState({
-    originName: '',
-    originLat: '',
-    originLng: '',
-    destinationName: '',
-    destinationLat: '',
-    destinationLng: '',
+    origin: null as Location | null,
+    destination: null as Location | null,
     departureTime: '',
-    availableSeats: '4',
     pricePerSeat: '',
-    description: '',
   });
   const [loading, setLoading] = useState(false);
-  const [mapModalVisible, setMapModalVisible] = useState(false);
+  const [locationModalVisible, setLocationModalVisible] = useState(false);
   const [selectingOrigin, setSelectingOrigin] = useState(true);
+  const [searchQuery, setSearchQuery] = useState('');
   const [mapRegion, setMapRegion] = useState({
     latitude: 37.78825,
     longitude: -122.4324,
@@ -40,20 +35,20 @@ export default function PublishRideScreen() {
   });
 
   const validateRideData = () => {
-    if (!rideData.originName.trim()) {
+    if (!rideData.origin) {
       Toast.show({
         type: 'error',
         text1: 'Origin Required',
-        text2: 'Please enter the starting location',
+        text2: 'Please select a starting location',
       });
       return false;
     }
 
-    if (!rideData.destinationName.trim()) {
+    if (!rideData.destination) {
       Toast.show({
         type: 'error',
         text1: 'Destination Required',
-        text2: 'Please enter the destination location',
+        text2: 'Please select a destination',
       });
       return false;
     }
@@ -61,13 +56,12 @@ export default function PublishRideScreen() {
     if (!rideData.departureTime.trim()) {
       Toast.show({
         type: 'error',
-        text1: 'Departure Time Required',
-        text2: 'Please select when the ride will start',
+        text1: 'Time Required',
+        text2: 'Please select departure time',
       });
       return false;
     }
 
-    // Validate departure time is in the future
     const departureDate = new Date(rideData.departureTime);
     if (departureDate <= new Date()) {
       Toast.show({
@@ -92,17 +86,7 @@ export default function PublishRideScreen() {
       Toast.show({
         type: 'error',
         text1: 'Invalid Price',
-        text2: 'Please enter a valid price greater than 0',
-      });
-      return false;
-    }
-
-    const seats = parseInt(rideData.availableSeats);
-    if (isNaN(seats) || seats < 1 || seats > 8) {
-      Toast.show({
-        type: 'error',
-        text1: 'Invalid Seats',
-        text2: 'Available seats must be between 1 and 8',
+        text2: 'Please enter a valid price',
       });
       return false;
     }
@@ -118,20 +102,11 @@ export default function PublishRideScreen() {
       const departureDate = new Date(rideData.departureTime).toISOString();
 
       await ridesApi.createRide({
-        origin: {
-          name: rideData.originName,
-          lat: parseFloat(rideData.originLat) || 0,
-          lng: parseFloat(rideData.originLng) || 0,
-        },
-        destination: {
-          name: rideData.destinationName,
-          lat: parseFloat(rideData.destinationLat) || 0,
-          lng: parseFloat(rideData.destinationLng) || 0,
-        },
+        origin: rideData.origin!,
+        destination: rideData.destination!,
         departure_time: departureDate,
-        available_seats: parseInt(rideData.availableSeats),
+        available_seats: 4, // Default 4 seats
         price_per_seat: parseFloat(rideData.pricePerSeat),
-        description: rideData.description,
       });
 
       Toast.show({
@@ -142,16 +117,10 @@ export default function PublishRideScreen() {
 
       // Reset form
       setRideData({
-        originName: '',
-        originLat: '',
-        originLng: '',
-        destinationName: '',
-        destinationLat: '',
-        destinationLng: '',
+        origin: null,
+        destination: null,
         departureTime: '',
-        availableSeats: '4',
         pricePerSeat: '',
-        description: '',
       });
     } catch (error: any) {
       Toast.show({
@@ -168,42 +137,27 @@ export default function PublishRideScreen() {
     setRideData((prev) => ({ ...prev, [field]: value }));
   };
 
-  const openMapForOrigin = () => {
-    setSelectingOrigin(true);
-    setMapModalVisible(true);
+  const openLocationPicker = (isOrigin: boolean) => {
+    setSelectingOrigin(isOrigin);
+    setLocationModalVisible(true);
   };
 
-  const openMapForDestination = () => {
-    setSelectingOrigin(false);
-    setMapModalVisible(true);
-  };
-
-  const handleMapPress = (event: any) => {
-    const { coordinate } = event.nativeEvent;
-    const { latitude, longitude } = coordinate;
-
+  const selectLocation = (location: Location) => {
     if (selectingOrigin) {
-      setRideData((prev) => ({
-        ...prev,
-        originLat: latitude.toString(),
-        originLng: longitude.toString(),
-        originName: `Location (${latitude.toFixed(4)}, ${longitude.toFixed(4)})`,
-      }));
+      setRideData(prev => ({ ...prev, origin: location }));
     } else {
-      setRideData((prev) => ({
-        ...prev,
-        destinationLat: latitude.toString(),
-        destinationLng: longitude.toString(),
-        destinationName: `Location (${latitude.toFixed(4)}, ${longitude.toFixed(4)})`,
-      }));
+      setRideData(prev => ({ ...prev, destination: location }));
     }
-
-    setMapModalVisible(false);
+    setLocationModalVisible(false);
     Toast.show({
       type: 'success',
       text1: 'Location Selected',
-      text2: selectingOrigin ? 'Origin location set' : 'Destination location set',
+      text2: selectingOrigin ? 'Pickup location set' : 'Drop location set',
     });
+  };
+
+  const selectDateTime = (dateTime: string) => {
+    setRideData(prev => ({ ...prev, departureTime: dateTime }));
   };
 
   return (

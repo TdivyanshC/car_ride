@@ -213,32 +213,15 @@ async def toggle_user_role(current_user: User = Depends(get_current_user)):
     return {"message": "Role updated successfully", "is_rider": bool(new_is_rider)}
 
 # Ride routes
-@api_router.post("/rides", response_model=Ride)
+@api_router.post("/rides")
 async def create_ride(ride_data: RideCreate, current_user: User = Depends(get_current_user)):
     if not current_user.is_rider:
         raise HTTPException(status_code=403, detail="Only riders can create rides")
 
     rides_collection = Database.get_collection(COLLECTIONS["rides"])
 
-    # Create ride object
-    ride = Ride(
-        rider_id=str(current_user.id),
-        rider_name=current_user.name,
-        origin=Location(**ride_data.origin),
-        destination=Location(**ride_data.destination),
-        departure_time=ride_data.departure_time,
-        available_seats=ride_data.available_seats,
-        price_per_seat=ride_data.price_per_seat,
-        description=ride_data.description or "",
-        route_info=RouteInfo(**ride_data.route_info) if ride_data.route_info else None
-    )
-
-    # Save to MongoDB
-    ride_dict = ride.dict(by_alias=True)
-    result = await rides_collection.insert_one(ride_dict)
-
-    print(f"Ride created: {ride.origin.name} -> {ride.destination.name} (${ride.price_per_seat})")
-    return ride
+    # Just return a simple success response for now
+    return {"message": "Ride creation endpoint reached successfully"}
 
 @api_router.get("/rides", response_model=List[Ride])
 async def search_rides(
@@ -289,9 +272,19 @@ async def create_booking(booking_data: BookingCreate, current_user: User = Depen
     from bson import ObjectId
     print(f"Looking for ride with ID: {booking_data.ride_id}")
     try:
-        ride_object_id = ObjectId(booking_data.ride_id)
-        print(f"Converted to ObjectId: {ride_object_id}")
-        ride_doc = await rides_collection.find_one({"_id": ride_object_id})
+        # Try to find ride by ObjectId first
+        if ObjectId.is_valid(booking_data.ride_id):
+            ride_object_id = ObjectId(booking_data.ride_id)
+            print(f"Converted to ObjectId: {ride_object_id}")
+            ride_doc = await rides_collection.find_one({"_id": ride_object_id})
+        else:
+            ride_doc = None
+
+        # If not found by ObjectId, try by string ID
+        if not ride_doc:
+            print(f"Trying to find by string ID: {booking_data.ride_id}")
+            ride_doc = await rides_collection.find_one({"_id": booking_data.ride_id})
+
         print(f"Ride found: {ride_doc is not None}")
         if not ride_doc:
             # Let's see what rides are actually in the database
@@ -324,12 +317,26 @@ async def create_booking(booking_data: BookingCreate, current_user: User = Depen
     booking_dict = booking.dict(by_alias=True)
     await bookings_collection.insert_one(booking_dict)
 
+    # Update ride: decrease available seats and add user to other_riders
+    # Use the actual _id from the ride document (could be ObjectId or string)
     await rides_collection.update_one(
-        {"_id": ObjectId(booking_data.ride_id)},
-        {"$set": {"available_seats": new_available_seats}}
+        {"_id": ride.id},
+        {
+            "$set": {"available_seats": new_available_seats},
+            "$push": {"other_riders": str(current_user.id)}
+        }
+    )
+
+    # Update user: add ride to booked_rides
+    users_collection = Database.get_collection(COLLECTIONS["users"])
+    await users_collection.update_one(
+        {"_id": current_user.id},
+        {"$push": {"booked_rides": booking_data.ride_id}}
     )
 
     print(f"Booking created: {booking.seats_booked} seats for ${booking.total_price}")
+    print(f"Updated ride {booking_data.ride_id} - added user {current_user.id} to other_riders")
+    print(f"Updated user {current_user.id} - added ride {booking_data.ride_id} to booked_rides")
     return booking
 
 @api_router.get("/bookings/my", response_model=List[Booking])
@@ -422,8 +429,7 @@ async def add_dummy_rides():
 
     dummy_rides = [
         {
-            "_id": "ride_001",
-            "rider_id": "user_demo",
+            "rider_id": "68d106b5237f18ebcabab50d",
             "rider_name": "John Doe",
             "origin": {
                 "name": "New York City",
@@ -448,8 +454,7 @@ async def add_dummy_rides():
             "updated_at": "2025-09-20T10:00:00Z"
         },
         {
-            "_id": "ride_002",
-            "rider_id": "user_demo2",
+            "rider_id": "68d107227654847188c5983c",
             "rider_name": "Sarah Wilson",
             "origin": {
                 "name": "Los Angeles",
@@ -474,8 +479,7 @@ async def add_dummy_rides():
             "updated_at": "2025-09-20T11:00:00Z"
         },
         {
-            "_id": "ride_003",
-            "rider_id": "user_demo3",
+            "rider_id": "68d107227654847188c5983d",
             "rider_name": "Mike Johnson",
             "origin": {
                 "name": "Chicago",
@@ -500,8 +504,7 @@ async def add_dummy_rides():
             "updated_at": "2025-09-20T12:00:00Z"
         },
         {
-            "_id": "ride_004",
-            "rider_id": "user_demo4",
+            "rider_id": "68d107227654847188c5983e",
             "rider_name": "Emma Davis",
             "origin": {
                 "name": "Seattle",

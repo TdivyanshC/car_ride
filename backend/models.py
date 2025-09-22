@@ -19,8 +19,8 @@ class PyObjectId(ObjectId):
             if ObjectId.is_valid(v):
                 return ObjectId(v)
             else:
-                # For dummy data like "ride_001", create a valid ObjectId from string
-                return ObjectId()
+                # For dummy data like "ride_001", return the string as-is
+                return v
         raise ValueError("Invalid objectid")
 
     @classmethod
@@ -59,6 +59,7 @@ class User(MongoBaseModel):
     is_rider: bool = False
     is_passenger: bool = True
     profile_image: Optional[str] = None
+    booked_rides: List[str] = Field(default_factory=list)  # List of ride IDs user has booked
 
 # Ride model
 class Ride(MongoBaseModel):
@@ -72,6 +73,7 @@ class Ride(MongoBaseModel):
     description: Optional[str] = ""
     route_info: Optional[RouteInfo] = None
     status: str = "active"  # active, completed, cancelled
+    other_riders: List[str] = Field(default_factory=list)  # List of user IDs who booked this ride
 
 # Booking model
 class Booking(MongoBaseModel):
