@@ -156,7 +156,7 @@ export default function MyRidesScreen() {
         {activeTab === 'published' && user?.is_rider && (
           <>
             {myRides.map((ride) => (
-              <View key={ride.id} style={styles.rideCard}>
+              <View key={ride._id} style={styles.rideCard}>
                 <View style={styles.rideHeader}>
                   <View style={styles.statusBadge}>
                     <Ionicons
@@ -173,7 +173,7 @@ export default function MyRidesScreen() {
                   </View>
                   <TouchableOpacity
                     style={styles.chatButton}
-                    onPress={() => openChat(ride.id)}
+                    onPress={() => openChat(ride._id)}
                   >
                     <Ionicons name="chatbubble" size={16} color="#007AFF" />
                   </TouchableOpacity>

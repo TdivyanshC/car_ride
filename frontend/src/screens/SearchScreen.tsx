@@ -30,13 +30,16 @@ export default function SearchScreen() {
 
   const handleBookRide = async (rideId: string, availableSeats: number) => {
     try {
-      await ridesApi.createBooking({
+      console.log('🔄 Booking ride with ID:', rideId);
+      const response = await ridesApi.createBooking({
         ride_id: rideId,
         seats_requested: 1,
       });
+      console.log('✅ Booking successful:', response);
       Alert.alert('Success', 'Ride booked successfully!');
       refetch();
     } catch (error: any) {
+      console.log('❌ Booking failed:', error.response?.data);
       Alert.alert('Error', error.response?.data?.detail || 'Booking failed');
     }
   };
@@ -140,7 +143,7 @@ export default function SearchScreen() {
         )}
 
         {rides.map((ride) => (
-          <View key={ride.id} style={styles.rideCard}>
+          <View key={ride._id} style={styles.rideCard}>
             <View style={styles.rideHeader}>
               <View style={styles.riderInfo}>
                 <Ionicons name="person-circle" size={32} color="#007AFF" />
@@ -190,7 +193,7 @@ export default function SearchScreen() {
                   styles.bookButton,
                   ride.available_seats === 0 && styles.bookButtonDisabled,
                 ]}
-                onPress={() => handleBookRide(ride.id, ride.available_seats)}
+                onPress={() => handleBookRide(ride._id, ride.available_seats)}
                 disabled={ride.available_seats === 0}
               >
                 <Text style={styles.bookButtonText}>

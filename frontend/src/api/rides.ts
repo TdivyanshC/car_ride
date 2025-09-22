@@ -9,21 +9,19 @@ const api = axios.create({
   },
 });
 
-// Get auth token from AsyncStorage and set it
-const setAuthToken = async () => {
+// Add request interceptor to set auth token dynamically
+api.interceptors.request.use(async (config) => {
   try {
     const AsyncStorage = require('@react-native-async-storage/async-storage').default;
     const token = await AsyncStorage.getItem('authToken');
     if (token) {
-      api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+      config.headers.Authorization = `Bearer ${token}`;
     }
   } catch (error) {
     console.error('Failed to set auth token:', error);
   }
-};
-
-// Set auth token before making requests
-setAuthToken();
+  return config;
+});
 
 export interface Location {
   name: string;
@@ -48,6 +46,7 @@ export interface CreateRideRequest {
 }
 
 export interface Ride {
+  _id: string;
   id: string;
   rider_id: string;
   rider_name: string;

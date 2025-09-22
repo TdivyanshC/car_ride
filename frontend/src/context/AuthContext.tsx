@@ -30,14 +30,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       const token = await AsyncStorage.getItem('authToken');
       if (token) {
-        authApi.setAuthToken(token);
         const userData = await authApi.getCurrentUser();
         setUser(userData.user);
       }
     } catch (error) {
       console.error('Auth check failed:', error);
       await AsyncStorage.removeItem('authToken');
-      authApi.removeAuthToken();
     } finally {
       setLoading(false);
     }
@@ -47,7 +45,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       const response = await authApi.login({ email, password });
       await AsyncStorage.setItem('authToken', response.access_token);
-      authApi.setAuthToken(response.access_token);
       setUser(response.user);
     } catch (error: any) {
       throw error;
@@ -63,7 +60,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       const response = await authApi.register(userData);
       await AsyncStorage.setItem('authToken', response.access_token);
-      authApi.setAuthToken(response.access_token);
       setUser(response.user);
     } catch (error: any) {
       throw error;
@@ -73,7 +69,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const logout = async () => {
     try {
       await AsyncStorage.removeItem('authToken');
-      authApi.removeAuthToken();
       setUser(null);
     } catch (error) {
       console.error('Logout failed:', error);

@@ -81,9 +81,10 @@ async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(s
     except JWTError:
         raise credentials_exception
 
-    # Find user in MongoDB
+    # Find user in MongoDB - convert string user_id back to ObjectId
     users_collection = Database.get_collection(COLLECTIONS["users"])
-    user_doc = await users_collection.find_one({"_id": user_id})
+    from bson import ObjectId
+    user_doc = await users_collection.find_one({"_id": ObjectId(user_id)})
 
     if user_doc is None:
         raise credentials_exception
@@ -285,8 +286,20 @@ async def create_booking(booking_data: BookingCreate, current_user: User = Depen
     bookings_collection = Database.get_collection(COLLECTIONS["bookings"])
 
     # Get ride details
-    ride_doc = await rides_collection.find_one({"_id": booking_data.ride_id})
-    if not ride_doc:
+    from bson import ObjectId
+    print(f"Looking for ride with ID: {booking_data.ride_id}")
+    try:
+        ride_object_id = ObjectId(booking_data.ride_id)
+        print(f"Converted to ObjectId: {ride_object_id}")
+        ride_doc = await rides_collection.find_one({"_id": ride_object_id})
+        print(f"Ride found: {ride_doc is not None}")
+        if not ride_doc:
+            # Let's see what rides are actually in the database
+            all_rides = await rides_collection.find({}).to_list(10)
+            print(f"Available rides in DB: {[str(r.get('_id')) for r in all_rides]}")
+            raise HTTPException(status_code=404, detail="Ride not found")
+    except Exception as e:
+        print(f"Error finding ride: {e}")
         raise HTTPException(status_code=404, detail="Ride not found")
 
     ride = Ride(**ride_doc)
@@ -312,7 +325,7 @@ async def create_booking(booking_data: BookingCreate, current_user: User = Depen
     await bookings_collection.insert_one(booking_dict)
 
     await rides_collection.update_one(
-        {"_id": booking_data.ride_id},
+        {"_id": ObjectId(booking_data.ride_id)},
         {"$set": {"available_seats": new_available_seats}}
     )
 

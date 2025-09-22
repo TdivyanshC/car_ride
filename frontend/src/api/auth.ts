@@ -39,15 +39,22 @@ class AuthAPI {
     },
   });
 
-  // Set auth token for subsequent requests
-  setAuthToken(token: string) {
-    this.api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+  constructor() {
+    // Add request interceptor to set auth token dynamically
+    this.api.interceptors.request.use(async (config) => {
+      try {
+        const AsyncStorage = require('@react-native-async-storage/async-storage').default;
+        const token = await AsyncStorage.getItem('authToken');
+        if (token) {
+          config.headers.Authorization = `Bearer ${token}`;
+        }
+      } catch (error) {
+        console.error('Failed to set auth token:', error);
+      }
+      return config;
+    });
   }
 
-  // Remove auth token
-  removeAuthToken() {
-    delete this.api.defaults.headers.common['Authorization'];
-  }
 
   // Login user
   async login(credentials: LoginRequest): Promise<AuthResponse> {

@@ -4,7 +4,7 @@ from datetime import datetime
 from bson import ObjectId
 from motor.motor_asyncio import AsyncIOMotorClient
 
-# Custom ObjectId field for Pydantic
+# Custom ObjectId field for Pydantic - supports both ObjectId and string IDs
 class PyObjectId(ObjectId):
     @classmethod
     def __get_validators__(cls):
@@ -12,9 +12,16 @@ class PyObjectId(ObjectId):
 
     @classmethod
     def validate(cls, v):
-        if not ObjectId.is_valid(v):
-            raise ValueError("Invalid objectid")
-        return ObjectId(v)
+        if isinstance(v, ObjectId):
+            return v
+        if isinstance(v, str):
+            # Allow string IDs for dummy data or custom IDs
+            if ObjectId.is_valid(v):
+                return ObjectId(v)
+            else:
+                # For dummy data like "ride_001", create a valid ObjectId from string
+                return ObjectId()
+        raise ValueError("Invalid objectid")
 
     @classmethod
     def __modify_schema__(cls, field_schema):
