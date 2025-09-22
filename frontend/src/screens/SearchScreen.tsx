@@ -4,10 +4,8 @@ import {
   Text,
   StyleSheet,
   TouchableOpacity,
-  ScrollView,
   TextInput,
   Modal,
-  Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -15,6 +13,8 @@ import MapView, { Marker, PROVIDER_GOOGLE } from 'react-native-maps';
 import { router } from 'expo-router';
 import * as Location from 'expo-location';
 import Toast from 'react-native-toast-message';
+import { placesApi, PlaceSuggestion } from '../api/places';
+import DateTimePicker from '@react-native-community/datetimepicker';
 
 export default function SearchScreen() {
   const [searchParams, setSearchParams] = useState({
@@ -32,84 +32,9 @@ export default function SearchScreen() {
     longitudeDelta: 0.0421,
   });
   const [currentLocation, setCurrentLocation] = useState<any>(null);
-  const [locationPermission, setLocationPermission] = useState(false);
-
-  // Predefined locations for search - expanded with colleges, landmarks, societies
-  const predefinedLocations = [
-    // Major Cities
-    { name: 'Mumbai, Maharashtra', lat: 19.0760, lng: 72.8777 },
-    { name: 'Delhi, India', lat: 28.7041, lng: 77.1025 },
-    { name: 'Bangalore, Karnataka', lat: 12.9716, lng: 77.5946 },
-    { name: 'Chennai, Tamil Nadu', lat: 13.0827, lng: 80.2707 },
-    { name: 'Kolkata, West Bengal', lat: 22.5726, lng: 88.3639 },
-    { name: 'Pune, Maharashtra', lat: 18.5204, lng: 73.8567 },
-    { name: 'Hyderabad, Telangana', lat: 17.3850, lng: 78.4867 },
-    { name: 'Ahmedabad, Gujarat', lat: 23.0225, lng: 72.5714 },
-    { name: 'Jaipur, Rajasthan', lat: 26.9124, lng: 75.7873 },
-    { name: 'Surat, Gujarat', lat: 21.1702, lng: 72.8311 },
-
-    // Colleges & Universities
-    { name: 'IIT Delhi', lat: 28.5440, lng: 77.1926 },
-    { name: 'IIT Bombay', lat: 19.1334, lng: 72.9133 },
-    { name: 'IIT Madras', lat: 12.9915, lng: 80.2337 },
-    { name: 'IIT Kanpur', lat: 26.5123, lng: 80.2329 },
-    { name: 'IIT Kharagpur', lat: 22.3145, lng: 87.3094 },
-    { name: 'IIT Roorkee', lat: 29.8644, lng: 77.8964 },
-    { name: 'BITS Pilani', lat: 28.3588, lng: 75.5880 },
-    { name: 'Delhi University', lat: 28.6863, lng: 77.2217 },
-    { name: 'JNU Delhi', lat: 28.5402, lng: 77.1662 },
-    { name: 'Anna University', lat: 13.0067, lng: 80.2565 },
-
-    // Landmarks & Tourist Spots
-    { name: 'Taj Mahal, Agra', lat: 27.1751, lng: 78.0421 },
-    { name: 'Red Fort, Delhi', lat: 28.6562, lng: 77.2410 },
-    { name: 'Gateway of India, Mumbai', lat: 18.9220, lng: 72.8347 },
-    { name: 'India Gate, Delhi', lat: 28.6129, lng: 77.2295 },
-    { name: 'Qutub Minar, Delhi', lat: 28.5244, lng: 77.1855 },
-    { name: 'Victoria Memorial, Kolkata', lat: 22.5448, lng: 88.3426 },
-    { name: 'Charminar, Hyderabad', lat: 17.3616, lng: 78.4747 },
-    { name: 'Mysore Palace', lat: 12.3051, lng: 76.6551 },
-    { name: 'Hawa Mahal, Jaipur', lat: 26.9239, lng: 75.8267 },
-    { name: 'Golden Temple, Amritsar', lat: 31.6200, lng: 74.8765 },
-
-    // Societies & Residential Areas
-    { name: 'DLF Phase 1, Gurgaon', lat: 28.4724, lng: 77.1036 },
-    { name: 'Sector 62, Noida', lat: 28.6245, lng: 77.3575 },
-    { name: 'Powai, Mumbai', lat: 19.1197, lng: 72.9051 },
-    { name: 'Whitefield, Bangalore', lat: 12.9698, lng: 77.7500 },
-    { name: 'T. Nagar, Chennai', lat: 13.0418, lng: 80.2341 },
-    { name: 'Salt Lake City, Kolkata', lat: 22.5735, lng: 88.4331 },
-    { name: 'Banjara Hills, Hyderabad', lat: 17.4156, lng: 78.4349 },
-    { name: 'Vastrapur, Ahmedabad', lat: 23.0385, lng: 72.5293 },
-    { name: 'Malviya Nagar, Jaipur', lat: 26.8549, lng: 75.8241 },
-    { name: 'Adajan, Surat', lat: 21.1946, lng: 72.7932 },
-
-    // Railway Stations & Airports
-    { name: 'New Delhi Railway Station', lat: 28.6420, lng: 77.2194 },
-    { name: 'Mumbai CST', lat: 18.9398, lng: 72.8354 },
-    { name: 'Howrah Station, Kolkata', lat: 22.5851, lng: 88.3468 },
-    { name: 'Indira Gandhi International Airport', lat: 28.5562, lng: 77.1000 },
-    { name: 'Chhatrapati Shivaji Maharaj International Airport', lat: 19.0896, lng: 72.8656 },
-    { name: 'Kempegowda International Airport', lat: 13.1986, lng: 77.7066 },
-    { name: 'Chennai International Airport', lat: 12.9941, lng: 80.1709 },
-    { name: 'Rajiv Gandhi International Airport', lat: 17.2403, lng: 78.4294 },
-    { name: 'Netaji Subhas Chandra Bose International Airport', lat: 22.6533, lng: 88.4467 },
-    { name: 'Sardar Vallabhbhai Patel International Airport', lat: 23.0733, lng: 72.6266 },
-
-    // Shopping Malls & Commercial Areas
-    { name: 'Connaught Place, Delhi', lat: 28.6304, lng: 77.2177 },
-    { name: 'Phoenix Mall, Mumbai', lat: 19.0865, lng: 72.8887 },
-    { name: 'Forum Mall, Bangalore', lat: 12.9345, lng: 77.6113 },
-    { name: 'Express Avenue, Chennai', lat: 13.0587, lng: 80.2642 },
-    { name: 'South City Mall, Kolkata', lat: 22.5014, lng: 88.3617 },
-    { name: 'Inorbit Mall, Hyderabad', lat: 17.4343, lng: 78.3863 },
-    { name: 'AlphaOne Mall, Ahmedabad', lat: 23.0295, lng: 72.5585 },
-    { name: 'World Trade Park, Jaipur', lat: 26.8500, lng: 75.8000 },
-    { name: 'VR Mall, Surat', lat: 21.1702, lng: 72.8311 },
-    { name: 'Palladium Mall, Pune', lat: 18.5308, lng: 73.8282 },
-  ];
-
-  const [searchResults, setSearchResults] = useState<any[]>([]);
+  const [, setLocationPermission] = useState(false);
+  const [searchResults, setSearchResults] = useState<PlaceSuggestion[]>([]);
+  const [showDatePicker, setShowDatePicker] = useState(false);
 
   // Request location permissions and get current location
   useEffect(() => {
@@ -138,44 +63,60 @@ export default function SearchScreen() {
     })();
   }, []);
 
-  // Filter locations based on search query
+  // Get autocomplete suggestions based on search query
   useEffect(() => {
-    if (searchQuery.trim().length > 0) {
-      const filtered = predefinedLocations.filter(location =>
-        location.name.toLowerCase().includes(searchQuery.toLowerCase())
-      );
-      setSearchResults(filtered);
-    } else {
-      setSearchResults([]);
-    }
+    const fetchSuggestions = async () => {
+      if (searchQuery.trim().length > 2) {
+        const suggestions = await placesApi.getAutocompleteSuggestions(searchQuery);
+        setSearchResults(suggestions);
+      } else {
+        setSearchResults([]);
+      }
+    };
+
+    const debounceTimer = setTimeout(fetchSuggestions, 300); // Debounce API calls
+    return () => clearTimeout(debounceTimer);
   }, [searchQuery]);
 
-  const selectLocation = (location: any) => {
-    if (selectingOrigin) {
-      setSearchParams(prev => ({ ...prev, origin: location }));
-      // Update map region to show the selected location
-      setMapRegion({
-        latitude: location.lat,
-        longitude: location.lng,
-        latitudeDelta: 0.05,
-        longitudeDelta: 0.05,
-      });
-    } else {
-      setSearchParams(prev => ({ ...prev, destination: location }));
-      // Update map region to show the selected location
-      setMapRegion({
-        latitude: location.lat,
-        longitude: location.lng,
-        latitudeDelta: 0.05,
-        longitudeDelta: 0.05,
+  const selectLocation = async (suggestion: PlaceSuggestion) => {
+    try {
+      const placeDetails = await placesApi.getPlaceDetails(suggestion.place_id);
+      if (placeDetails) {
+        const location = placesApi.convertToLocation(placeDetails);
+
+        if (selectingOrigin) {
+          setSearchParams(prev => ({ ...prev, origin: location }));
+          // Update map region to show the selected location
+          setMapRegion({
+            latitude: location.lat,
+            longitude: location.lng,
+            latitudeDelta: 0.05,
+            longitudeDelta: 0.05,
+          });
+        } else {
+          setSearchParams(prev => ({ ...prev, destination: location }));
+          // Update map region to show the selected location
+          setMapRegion({
+            latitude: location.lat,
+            longitude: location.lng,
+            latitudeDelta: 0.05,
+            longitudeDelta: 0.05,
+          });
+        }
+        setLocationModalVisible(false);
+        Toast.show({
+          type: 'success',
+          text1: 'Location Selected',
+          text2: selectingOrigin ? 'Pickup location set' : 'Drop location set',
+        });
+      }
+    } catch (error) {
+      Toast.show({
+        type: 'error',
+        text1: 'Error',
+        text2: 'Failed to get location details',
       });
     }
-    setLocationModalVisible(false);
-    Toast.show({
-      type: 'success',
-      text1: 'Location Selected',
-      text2: selectingOrigin ? 'Pickup location set' : 'Drop location set',
-    });
   };
 
   const selectDateTime = (dateTime: Date) => {
@@ -258,13 +199,7 @@ export default function SearchScreen() {
         {/* Date & Time */}
         <TouchableOpacity
           style={styles.timeButton}
-          onPress={() => {
-            Alert.alert(
-              'Date/Time Picker',
-              'In a full implementation, this would open a native date/time picker. For now, the time is set to 2 hours from now.',
-              [{ text: 'OK' }]
-            );
-          }}
+          onPress={() => setShowDatePicker(true)}
         >
           <Ionicons name="time" size={20} color="#007AFF" />
           <View style={styles.timeContent}>
@@ -290,6 +225,21 @@ export default function SearchScreen() {
             <Ionicons name="create" size={16} color="#007AFF" />
           </TouchableOpacity>
         </TouchableOpacity>
+
+        {showDatePicker && (
+          <DateTimePicker
+            value={searchParams.date}
+            mode="datetime"
+            display="default"
+            minimumDate={new Date()}
+            onChange={(event, selectedDate) => {
+              setShowDatePicker(false);
+              if (selectedDate) {
+                selectDateTime(selectedDate);
+              }
+            }}
+          />
+        )}
 
         <TouchableOpacity style={styles.searchButton} onPress={handleSearch}>
           <Text style={styles.searchButtonText}>Find Rides</Text>
@@ -366,14 +316,21 @@ export default function SearchScreen() {
           <View style={styles.locationSuggestions}>
             {searchResults.length > 0 ? (
               // Show search results
-              searchResults.map((location, index) => (
+              searchResults.map((suggestion, index) => (
                 <TouchableOpacity
                   key={index}
                   style={styles.suggestionItem}
-                  onPress={() => selectLocation(location)}
+                  onPress={() => selectLocation(suggestion)}
                 >
                   <Ionicons name="location" size={20} color="#007AFF" />
-                  <Text style={styles.suggestionText}>{location.name}</Text>
+                  <View style={styles.suggestionContent}>
+                    <Text style={styles.suggestionMainText}>
+                      {suggestion.structured_formatting.main_text}
+                    </Text>
+                    <Text style={styles.suggestionSecondaryText}>
+                      {suggestion.structured_formatting.secondary_text}
+                    </Text>
+                  </View>
                 </TouchableOpacity>
               ))
             ) : searchQuery.trim().length > 0 ? (
@@ -388,7 +345,24 @@ export default function SearchScreen() {
                 {currentLocation && (
                   <TouchableOpacity
                     style={styles.suggestionItem}
-                    onPress={() => selectLocation(currentLocation)}
+                    onPress={() => {
+                      const location = placesApi.convertToLocation({
+                        name: currentLocation.name,
+                        lat: currentLocation.lat,
+                        lng: currentLocation.lng,
+                      });
+                      if (selectingOrigin) {
+                        setSearchParams(prev => ({ ...prev, origin: location }));
+                      } else {
+                        setSearchParams(prev => ({ ...prev, destination: location }));
+                      }
+                      setLocationModalVisible(false);
+                      Toast.show({
+                        type: 'success',
+                        text1: 'Location Selected',
+                        text2: selectingOrigin ? 'Pickup location set' : 'Drop location set',
+                      });
+                    }}
                   >
                     <Ionicons name="locate" size={20} color="#007AFF" />
                     <Text style={styles.suggestionText}>Use current location</Text>
@@ -396,11 +370,24 @@ export default function SearchScreen() {
                 )}
                 <TouchableOpacity
                   style={styles.suggestionItem}
-                  onPress={() => selectLocation({
-                    name: `Location (${mapRegion.latitude.toFixed(4)}, ${mapRegion.longitude.toFixed(4)})`,
-                    lat: mapRegion.latitude,
-                    lng: mapRegion.longitude,
-                  })}
+                  onPress={() => {
+                    const location = placesApi.convertToLocation({
+                      name: `Location (${mapRegion.latitude.toFixed(4)}, ${mapRegion.longitude.toFixed(4)})`,
+                      lat: mapRegion.latitude,
+                      lng: mapRegion.longitude,
+                    });
+                    if (selectingOrigin) {
+                      setSearchParams(prev => ({ ...prev, origin: location }));
+                    } else {
+                      setSearchParams(prev => ({ ...prev, destination: location }));
+                    }
+                    setLocationModalVisible(false);
+                    Toast.show({
+                      type: 'success',
+                      text1: 'Location Selected',
+                      text2: selectingOrigin ? 'Pickup location set' : 'Drop location set',
+                    });
+                  }}
                 >
                   <Ionicons name="location" size={20} color="#34C759" />
                   <Text style={styles.suggestionText}>Use map center</Text>
@@ -556,6 +543,20 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     borderBottomWidth: 1,
     borderBottomColor: '#f0f0f0',
+  },
+  suggestionContent: {
+    flex: 1,
+    marginLeft: 12,
+  },
+  suggestionMainText: {
+    fontSize: 16,
+    color: '#1a1a1a',
+    fontWeight: '500',
+  },
+  suggestionSecondaryText: {
+    fontSize: 14,
+    color: '#666',
+    marginTop: 2,
   },
   suggestionText: {
     fontSize: 16,

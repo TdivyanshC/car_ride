@@ -1,22 +1,56 @@
 {
   "expo": {
-    "name": "frontend",
-    "slug": "frontend",
+    "name": "Car Ride Sharing",
+    "slug": "car-ride-sharing",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/images/favicon.png",
-    "scheme": "frontend",
+    "icon": "./assets/images/icon.png",
+    "scheme": "carridesharing",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
+    "primaryColor": "#007AFF",
+    "backgroundColor": "#ffffff",
+    "notification": {
+      "icon": "./assets/images/notification-icon.png",
+      "color": "#007AFF"
+    },
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.carridesharing.app",
+      "buildNumber": "1.0.0",
+      "requireFullScreen": false,
+      "infoPlist": {
+        "NSLocationWhenInUseUsageDescription": "This app needs access to location to provide ride sharing services and show nearby rides.",
+        "NSLocationAlwaysAndWhenInUseUsageDescription": "This app needs access to location to provide ride sharing services and show nearby rides."
+      }
     },
     "android": {
       "edgeToEdgeEnabled": true,
+      "package": "com.carridesharing.app",
+      "versionCode": 1,
       "permissions": [
         "ACCESS_COARSE_LOCATION",
         "ACCESS_FINE_LOCATION",
-        "FOREGROUND_SERVICE"
+        "FOREGROUND_SERVICE",
+        "ACCESS_BACKGROUND_LOCATION"
+      ],
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/images/adaptive-icon.png",
+        "backgroundColor": "#ffffff"
+      },
+      "splash": {
+        "image": "./assets/images/splash-image.png",
+        "resizeMode": "contain",
+        "backgroundColor": "#ffffff"
+      },
+      "intentFilters": [
+        {
+          "action": "VIEW",
+          "data": {
+            "scheme": "carridesharing"
+          },
+          "category": ["BROWSABLE", "DEFAULT"]
+        }
       ]
     },
     "web": {
@@ -29,15 +63,33 @@
       [
         "expo-splash-screen",
         {
-          "image": "./assets/images/splash-icon.png",
+          "image": "./assets/images/splash-image.png",
           "imageWidth": 200,
           "resizeMode": "contain",
-          "backgroundColor": "#000000"
+          "backgroundColor": "#ffffff"
+        }
+      ],
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "compileSdkVersion": 34,
+            "targetSdkVersion": 34,
+            "buildToolsVersion": "34.0.0"
+          },
+          "ios": {
+            "deploymentTarget": "15.1"
+          }
         }
       ]
     ],
     "experiments": {
       "typedRoutes": true
+    },
+    "extra": {
+      "eas": {
+        "projectId": "your-eas-project-id"
+      }
     }
   }
 }

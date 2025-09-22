@@ -6,8 +6,6 @@ import {
   TouchableOpacity,
   ScrollView,
   TextInput,
-  KeyboardAvoidingView,
-  Platform,
   Modal,
   Alert,
 } from 'react-native';
@@ -17,6 +15,8 @@ import MapView, { Marker, PROVIDER_GOOGLE } from 'react-native-maps';
 import * as Location from 'expo-location';
 import { ridesApi, Location as LocationType } from '../api/rides';
 import Toast from 'react-native-toast-message';
+import { placesApi, PlaceSuggestion } from '../api/places';
+import DateTimePicker from '@react-native-community/datetimepicker';
 
 export default function PublishRideScreen() {
   const [rideData, setRideData] = useState({
@@ -29,7 +29,7 @@ export default function PublishRideScreen() {
   const [locationModalVisible, setLocationModalVisible] = useState(false);
   const [selectingOrigin, setSelectingOrigin] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
-  const [searchResults, setSearchResults] = useState<LocationType[]>([]);
+  const [searchResults, setSearchResults] = useState<PlaceSuggestion[]>([]);
   const [mapRegion, setMapRegion] = useState({
     latitude: 37.78825,
     longitude: -122.4324,
@@ -37,21 +37,8 @@ export default function PublishRideScreen() {
     longitudeDelta: 0.0421,
   });
   const [currentLocation, setCurrentLocation] = useState<LocationType | null>(null);
-  const [locationPermission, setLocationPermission] = useState(false);
-
-  // Predefined locations for search
-  const predefinedLocations: LocationType[] = [
-    { name: 'Mumbai, Maharashtra', lat: 19.0760, lng: 72.8777 },
-    { name: 'Delhi, India', lat: 28.7041, lng: 77.1025 },
-    { name: 'Bangalore, Karnataka', lat: 12.9716, lng: 77.5946 },
-    { name: 'Chennai, Tamil Nadu', lat: 13.0827, lng: 80.2707 },
-    { name: 'Kolkata, West Bengal', lat: 22.5726, lng: 88.3639 },
-    { name: 'Pune, Maharashtra', lat: 18.5204, lng: 73.8567 },
-    { name: 'Hyderabad, Telangana', lat: 17.3850, lng: 78.4867 },
-    { name: 'Ahmedabad, Gujarat', lat: 23.0225, lng: 72.5714 },
-    { name: 'Jaipur, Rajasthan', lat: 26.9124, lng: 75.7873 },
-    { name: 'Surat, Gujarat', lat: 21.1702, lng: 72.8311 },
-  ];
+  const [, setLocationPermission] = useState(false);
+  const [showDatePicker, setShowDatePicker] = useState(false);
 
   // Request location permissions and get current location
   useEffect(() => {
@@ -86,16 +73,19 @@ export default function PublishRideScreen() {
     })();
   }, []);
 
-  // Filter locations based on search query
+  // Get autocomplete suggestions based on search query
   useEffect(() => {
-    if (searchQuery.trim().length > 0) {
-      const filtered = predefinedLocations.filter(location =>
-        location.name.toLowerCase().includes(searchQuery.toLowerCase())
-      );
-      setSearchResults(filtered);
-    } else {
-      setSearchResults([]);
-    }
+    const fetchSuggestions = async () => {
+      if (searchQuery.trim().length > 2) {
+        const suggestions = await placesApi.getAutocompleteSuggestions(searchQuery);
+        setSearchResults(suggestions);
+      } else {
+        setSearchResults([]);
+      }
+    };
+
+    const debounceTimer = setTimeout(fetchSuggestions, 300); // Debounce API calls
+    return () => clearTimeout(debounceTimer);
   }, [searchQuery]);
 
   const validateRideData = () => {
@@ -187,27 +177,37 @@ export default function PublishRideScreen() {
     }
   };
 
-  const updateField = (field: string, value: string) => {
-    setRideData((prev) => ({ ...prev, [field]: value }));
-  };
 
   const openLocationPicker = (isOrigin: boolean) => {
     setSelectingOrigin(isOrigin);
     setLocationModalVisible(true);
   };
 
-  const selectLocation = (location: LocationType) => {
-    if (selectingOrigin) {
-      setRideData(prev => ({ ...prev, origin: location }));
-    } else {
-      setRideData(prev => ({ ...prev, destination: location }));
+  const selectLocation = async (suggestion: PlaceSuggestion) => {
+    try {
+      const placeDetails = await placesApi.getPlaceDetails(suggestion.place_id);
+      if (placeDetails) {
+        const location = placesApi.convertToLocation(placeDetails);
+
+        if (selectingOrigin) {
+          setRideData(prev => ({ ...prev, origin: location }));
+        } else {
+          setRideData(prev => ({ ...prev, destination: location }));
+        }
+        setLocationModalVisible(false);
+        Toast.show({
+          type: 'success',
+          text1: 'Location Selected',
+          text2: selectingOrigin ? 'Pickup location set' : 'Drop location set',
+        });
+      }
+    } catch (error) {
+      Toast.show({
+        type: 'error',
+        text1: 'Error',
+        text2: 'Failed to get location details',
+      });
     }
-    setLocationModalVisible(false);
-    Toast.show({
-      type: 'success',
-      text1: 'Location Selected',
-      text2: selectingOrigin ? 'Pickup location set' : 'Drop location set',
-    });
   };
 
   const selectDateTime = (dateTime: Date) => {
@@ -262,14 +262,7 @@ export default function PublishRideScreen() {
         <View style={styles.section}>
           <TouchableOpacity
             style={styles.timeButton}
-            onPress={() => {
-              // Simple date/time picker - in production use a proper picker
-              Alert.alert(
-                'Date/Time Picker',
-                'In a full implementation, this would open a native date/time picker. For now, the time is set to 2 hours from now.',
-                [{ text: 'OK' }]
-              );
-            }}
+            onPress={() => setShowDatePicker(true)}
           >
             <Ionicons name="time" size={20} color="#007AFF" />
             <View style={styles.timeContent}>
@@ -296,6 +289,21 @@ export default function PublishRideScreen() {
               <Ionicons name="create" size={16} color="#007AFF" />
             </TouchableOpacity>
           </TouchableOpacity>
+
+          {showDatePicker && (
+            <DateTimePicker
+              value={rideData.departureTime}
+              mode="datetime"
+              display="default"
+              minimumDate={new Date()}
+              onChange={(event, selectedDate) => {
+                setShowDatePicker(false);
+                if (selectedDate) {
+                  selectDateTime(selectedDate);
+                }
+              }}
+            />
+          )}
         </View>
 
         {/* Price */}
@@ -369,14 +377,21 @@ export default function PublishRideScreen() {
           <View style={styles.locationSuggestions}>
             {searchResults.length > 0 ? (
               // Show search results
-              searchResults.map((location, index) => (
+              searchResults.map((suggestion, index) => (
                 <TouchableOpacity
                   key={index}
                   style={styles.suggestionItem}
-                  onPress={() => selectLocation(location)}
+                  onPress={() => selectLocation(suggestion)}
                 >
                   <Ionicons name="location" size={20} color="#007AFF" />
-                  <Text style={styles.suggestionText}>{location.name}</Text>
+                  <View style={styles.suggestionContent}>
+                    <Text style={styles.suggestionMainText}>
+                      {suggestion.structured_formatting.main_text}
+                    </Text>
+                    <Text style={styles.suggestionSecondaryText}>
+                      {suggestion.structured_formatting.secondary_text}
+                    </Text>
+                  </View>
                 </TouchableOpacity>
               ))
             ) : searchQuery.trim().length > 0 ? (
@@ -391,7 +406,19 @@ export default function PublishRideScreen() {
                 {currentLocation && (
                   <TouchableOpacity
                     style={styles.suggestionItem}
-                    onPress={() => selectLocation(currentLocation)}
+                    onPress={() => {
+                      if (selectingOrigin) {
+                        setRideData(prev => ({ ...prev, origin: currentLocation }));
+                      } else {
+                        setRideData(prev => ({ ...prev, destination: currentLocation }));
+                      }
+                      setLocationModalVisible(false);
+                      Toast.show({
+                        type: 'success',
+                        text1: 'Location Selected',
+                        text2: selectingOrigin ? 'Pickup location set' : 'Drop location set',
+                      });
+                    }}
                   >
                     <Ionicons name="locate" size={20} color="#007AFF" />
                     <Text style={styles.suggestionText}>Use current location</Text>
@@ -399,11 +426,24 @@ export default function PublishRideScreen() {
                 )}
                 <TouchableOpacity
                   style={styles.suggestionItem}
-                  onPress={() => selectLocation({
-                    name: `Location (${mapRegion.latitude.toFixed(4)}, ${mapRegion.longitude.toFixed(4)})`,
-                    lat: mapRegion.latitude,
-                    lng: mapRegion.longitude,
-                  })}
+                  onPress={() => {
+                    const location = placesApi.convertToLocation({
+                      name: `Location (${mapRegion.latitude.toFixed(4)}, ${mapRegion.longitude.toFixed(4)})`,
+                      lat: mapRegion.latitude,
+                      lng: mapRegion.longitude,
+                    });
+                    if (selectingOrigin) {
+                      setRideData(prev => ({ ...prev, origin: location }));
+                    } else {
+                      setRideData(prev => ({ ...prev, destination: location }));
+                    }
+                    setLocationModalVisible(false);
+                    Toast.show({
+                      type: 'success',
+                      text1: 'Location Selected',
+                      text2: selectingOrigin ? 'Pickup location set' : 'Drop location set',
+                    });
+                  }}
                 >
                   <Ionicons name="location" size={20} color="#34C759" />
                   <Text style={styles.suggestionText}>Use map center</Text>
@@ -609,6 +649,20 @@ const styles = StyleSheet.create({
     padding: 16,
     borderBottomWidth: 1,
     borderBottomColor: '#f0f0f0',
+  },
+  suggestionContent: {
+    flex: 1,
+    marginLeft: 12,
+  },
+  suggestionMainText: {
+    fontSize: 16,
+    color: '#1a1a1a',
+    fontWeight: '500',
+  },
+  suggestionSecondaryText: {
+    fontSize: 14,
+    color: '#666',
+    marginTop: 2,
   },
   suggestionText: {
     fontSize: 16,
