@@ -213,15 +213,35 @@ async def toggle_user_role(current_user: User = Depends(get_current_user)):
     return {"message": "Role updated successfully", "is_rider": bool(new_is_rider)}
 
 # Ride routes
-@api_router.post("/rides")
+@api_router.post("/rides", response_model=Ride)
 async def create_ride(ride_data: RideCreate, current_user: User = Depends(get_current_user)):
     if not current_user.is_rider:
         raise HTTPException(status_code=403, detail="Only riders can create rides")
 
     rides_collection = Database.get_collection(COLLECTIONS["rides"])
 
-    # Just return a simple success response for now
-    return {"message": "Ride creation endpoint reached successfully"}
+    # Create the ride object
+    ride = Ride(
+        rider_id=str(current_user.id),
+        rider_name=current_user.name,
+        origin=ride_data.origin,
+        destination=ride_data.destination,
+        departure_time=ride_data.departure_time,
+        available_seats=4,  # Default 4 seats
+        price_per_seat=ride_data.price_per_seat,
+        description=ride_data.description or "",
+        route_info=ride_data.route_info
+    )
+
+    # Save to database
+    ride_dict = ride.dict(by_alias=True)
+    result = await rides_collection.insert_one(ride_dict)
+
+    # Update the ride object with the inserted ID
+    ride.id = result.inserted_id
+
+    print(f"Created ride: {ride.id} by user {current_user.name}")
+    return ride
 
 @api_router.get("/rides", response_model=List[Ride])
 async def search_rides(

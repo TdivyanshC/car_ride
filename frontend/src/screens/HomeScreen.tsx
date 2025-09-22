@@ -20,10 +20,7 @@ export default function HomeScreen() {
       subtitle: 'Browse available rides',
       icon: 'search',
       color: '#007AFF',
-      onPress: () => {
-        // TODO: Implement search modal or navigate to search screen
-        console.log('🏠 Search functionality to be implemented');
-      },
+      onPress: () => router.push('/(tabs)/search'),
     },
     {
       id: 'publish',
